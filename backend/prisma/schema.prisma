@@ -1,0 +1,1003 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+//////////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////////
+
+enum UserRole {
+  SUPER_ADMIN
+  MANAGER
+  LOAN_OFFICER
+  CASHIER
+  SYSTEM
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  DOCUMENTS_REQUESTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LoanStatus {
+  PENDING_DISBURSEMENT
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  WRITTEN_OFF
+  CANCELLED
+}
+
+enum RepaymentStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+enum RepaymentFrequency {
+  DAILY
+  WEEKLY
+  BI_WEEKLY
+  MONTHLY
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  POS
+  MOBILE_MONEY
+}
+
+enum DocumentType {
+  PASSPORT
+  NATIONAL_ID
+  NIN
+  BVN
+  UTILITY_BILL
+  BANK_STATEMENT
+  EMPLOYMENT_LETTER
+  BUSINESS_REGISTRATION
+  COLLATERAL_DOCUMENT
+  OTHER
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum TransactionType {
+  LOAN_DISBURSEMENT
+  REPAYMENT
+  INTEREST
+  PENALTY
+  PROCESSING_FEE
+  ADJUSTMENT
+}
+
+enum NotificationType {
+  SMS
+  EMAIL
+  PUSH
+}
+
+enum SmsStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum PenaltyStatus {
+  PENDING
+  PAID
+  WAIVED
+}
+
+//////////////////////////////////////////////////////////
+// CORE MODULE
+//////////////////////////////////////////////////////////
+
+model Branch {
+  id         String  @id @default(uuid())
+  branchCode String  @unique
+  name       String
+  phone      String?
+  email      String?
+  address    String
+  city       String?
+  state      String?
+  country    String?
+  isActive   Boolean @default(true)
+
+  users User[]
+
+  customers Customer[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([branchCode])
+  @@index([name])
+}
+
+model User {
+  id             String @id @default(uuid())
+  employeeNumber String @unique
+
+  firstName String
+  lastName  String
+
+  email String  @unique
+  phone String? @unique
+
+  passwordHash String
+
+  role UserRole
+
+  status UserStatus @default(ACTIVE)
+
+  branchId String
+
+  isEmailVerified Boolean @default(true)
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  lastLoginAt DateTime?
+
+  applicationsAssigned  LoanApplication[]
+  applicationReviews    ApplicationReview[]
+  applicationStatusLogs ApplicationStatusHistory[]
+  documentsUploaded     Document[]
+
+  loanDisbursements LoanDisbursement[]
+
+  loanStatusHistory LoanStatusHistory[]
+
+  repaymentsReceived Repayment[]
+
+  auditLogs AuditLog[]
+
+  @@index([branchId])
+  @@index([email])
+  @@index([employeeNumber])
+}
+
+model Setting {
+  id String @id @default(uuid())
+
+  key String @unique
+
+  value String
+
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NumberSequence {
+  id String @id @default(uuid())
+
+  entity String @unique
+
+  prefix String
+
+  currentNumber Int @default(0)
+
+  padding Int @default(6)
+
+  yearBased Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+//////////////////////////////////////////////////////////
+// CUSTOMER MANAGEMENT (CRM)
+//////////////////////////////////////////////////////////
+
+model Customer {
+  id String @id @default(uuid())
+
+  customerNumber String @unique
+
+  firstName  String
+  lastName   String
+  middleName String?
+
+  phone          String  @unique
+  alternatePhone String?
+
+  email String? @unique
+
+  gender Gender?
+
+  maritalStatus MaritalStatus?
+
+  dateOfBirth DateTime?
+
+  nationality String?
+
+  bvn String? @unique
+  nin String? @unique
+
+  photoUrl String?
+
+  status CustomerStatus @default(ACTIVE)
+
+  addresses   CustomerAddress[]
+  employments CustomerEmployment[]
+  guarantors  Guarantor[]
+  documents   Document[]
+
+  applications LoanApplication[]
+  loans        Loan[]
+
+  notifications Notification[]
+
+  smsLogs SmsLog[]
+
+  branchId       String?
+  branch         Branch?  @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([customerNumber])
+  @@index([phone])
+  @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+
+model CustomerAddress {
+  id String @id @default(uuid())
+
+  customerId String
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  addressLine1 String
+  addressLine2 String?
+
+  city String
+
+  state String
+
+  country String
+
+  postalCode String?
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+}
+
+//////////////////////////////////////////////////////////
+
+model CustomerEmployment {
+  id String @id @default(uuid())
+
+  customerId String
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  employerName String
+
+  occupation String
+
+  monthlyIncome Decimal @db.Decimal(15, 2)
+
+  employerAddress String?
+
+  employmentDate DateTime?
+
+  isCurrent Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+}
+
+//////////////////////////////////////////////////////////
+
+model Guarantor {
+  id String @id @default(uuid())
+
+  customerId String
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  fullName String
+
+  relationship String
+
+  phone String
+
+  email String?
+
+  occupation String?
+
+  address String
+
+  documents Document[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+}
+
+//////////////////////////////////////////////////////////
+
+model Document {
+  id String @id @default(uuid())
+
+  fileName String
+
+  originalFileName String
+
+  mimeType String
+
+  fileSize Int
+
+  fileUrl String
+
+  documentType DocumentType
+
+  verificationStatus VerificationStatus @default(PENDING)
+
+  remarks String?
+
+  customerId String?
+
+  guarantorId String?
+
+  applicationId String?
+
+  collateralId String?
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  guarantor Guarantor? @relation(fields: [guarantorId], references: [id])
+
+  application LoanApplication? @relation(fields: [applicationId], references: [id])
+
+  collateral Collateral? @relation(fields: [collateralId], references: [id])
+
+  uploadedById String?
+
+  uploadedBy User? @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([guarantorId])
+  @@index([applicationId])
+  @@index([collateralId])
+}
+
+//////////////////////////////////////////////////////////
+// LOAN PRODUCTS
+//////////////////////////////////////////////////////////
+
+model LoanProduct {
+  id String @id @default(uuid())
+
+  productCode String @unique
+
+  name String
+
+  description String?
+
+  minimumAmount Decimal @db.Decimal(15, 2)
+
+  maximumAmount Decimal @db.Decimal(15, 2)
+
+  interestRate Decimal @db.Decimal(5, 2)
+
+  processingFee Decimal @db.Decimal(15, 2)
+
+  penaltyRate Decimal @db.Decimal(5, 2)
+
+  maximumDuration Int
+
+  repaymentFrequency RepaymentFrequency
+
+  requiresGuarantor Boolean @default(true)
+
+  requiresBVN Boolean @default(true)
+
+  requiresNIN Boolean @default(false)
+
+  isActive Boolean @default(true)
+
+  applications LoanApplication[]
+
+  fees LoanProductFee[]
+
+  loans Loan[]
+
+  requirements LoanProductRequirement[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([productCode])
+}
+
+//////////////////////////////////////////////////////////
+
+model LoanProductRequirement {
+  id String @id @default(uuid())
+
+  loanProductId String
+
+  loanProduct LoanProduct @relation(fields: [loanProductId], references: [id])
+
+  title String
+
+  description String?
+
+  required Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([loanProductId])
+}
+
+//////////////////////////////////////////////////////////
+
+model LoanProductFee {
+  id String @id @default(uuid())
+
+  loanProductId String
+
+  loanProduct LoanProduct @relation(fields: [loanProductId], references: [id])
+
+  feeName String
+
+  amount Decimal @db.Decimal(15, 2)
+
+  percentage Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([loanProductId])
+}
+
+//////////////////////////////////////////////////////////
+// LOAN APPLICATION
+//////////////////////////////////////////////////////////
+
+model LoanApplication {
+  id String @id @default(uuid())
+
+  applicationNumber String @unique
+
+  customerId String
+
+  loanProductId String
+
+  assignedOfficerId String?
+
+  requestedAmount Decimal @db.Decimal(15, 2)
+
+  purpose String
+
+  durationMonths Int
+
+  status ApplicationStatus @default(SUBMITTED)
+
+  remarks String?
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  loanProduct LoanProduct @relation(fields: [loanProductId], references: [id])
+
+  assignedOfficer User? @relation(fields: [assignedOfficerId], references: [id])
+
+  documents Document[]
+
+  reviews ApplicationReview[]
+
+  statusHistory ApplicationStatusHistory[]
+
+  loan Loan?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([applicationNumber])
+  @@index([customerId])
+  @@index([loanProductId])
+  @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+
+model ApplicationReview {
+  id String @id @default(uuid())
+
+  applicationId String
+
+  reviewerId String
+
+  recommendation String
+
+  comments String?
+
+  reviewedAt DateTime @default(now())
+
+  application LoanApplication @relation(fields: [applicationId], references: [id])
+
+  reviewer User @relation(fields: [reviewerId], references: [id])
+
+  @@index([applicationId])
+}
+
+//////////////////////////////////////////////////////////
+
+model ApplicationStatusHistory {
+  id String @id @default(uuid())
+
+  applicationId String
+
+  status ApplicationStatus
+
+  remarks String?
+
+  changedById String
+
+  application LoanApplication @relation(fields: [applicationId], references: [id])
+
+  changedBy User @relation(fields: [changedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([applicationId])
+}
+
+//////////////////////////////////////////////////////////
+// LOAN SERVICING
+//////////////////////////////////////////////////////////
+
+model Loan {
+  id String @id @default(uuid())
+
+  loanNumber String @unique
+
+  applicationId String @unique
+
+  customerId String
+
+  loanProductId String
+
+  principalAmount Decimal @db.Decimal(15, 2)
+
+  interestRate Decimal @db.Decimal(5, 2)
+
+  processingFee Decimal @db.Decimal(15, 2)
+
+  approvedAmount Decimal @db.Decimal(15, 2)
+
+  disbursedAmount Decimal @default(0) @db.Decimal(15, 2)
+
+  totalPayable Decimal @db.Decimal(15, 2)
+
+  outstandingBalance Decimal @db.Decimal(15, 2)
+
+  durationMonths Int
+
+  repaymentFrequency RepaymentFrequency
+
+  status LoanStatus @default(PENDING_DISBURSEMENT)
+
+  approvalDate DateTime?
+
+  disbursementDate DateTime?
+
+  maturityDate DateTime?
+
+  remarks String?
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  application LoanApplication @relation(fields: [applicationId], references: [id])
+
+  loanProduct LoanProduct @relation(fields: [loanProductId], references: [id])
+
+  schedules RepaymentSchedule[]
+
+  repayments Repayment[]
+
+  disbursements LoanDisbursement[]
+
+  penalties Penalty[]
+
+  collateral Collateral[]
+
+  statusHistory LoanStatusHistory[]
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+
+  @@index([loanNumber])
+  @@index([customerId])
+  @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+
+model LoanDisbursement {
+  id String @id @default(uuid())
+
+  loanId String
+
+  referenceNumber String @unique
+
+  amount Decimal @db.Decimal(15, 2)
+
+  paymentMethod PaymentMethod
+
+  accountName String?
+
+  accountNumber String?
+
+  bankName String?
+
+  remarks String?
+
+  disbursedById String
+
+  disbursedAt DateTime @default(now())
+
+  loan Loan @relation(fields: [loanId], references: [id])
+
+  disbursedBy User @relation(fields: [disbursedById], references: [id])
+
+  @@index([loanId])
+}
+
+//////////////////////////////////////////////////////////
+
+model LoanStatusHistory {
+  id String @id @default(uuid())
+
+  loanId String
+
+  status LoanStatus
+
+  remarks String?
+
+  changedById String
+
+  loan Loan @relation(fields: [loanId], references: [id])
+
+  changedBy User @relation(fields: [changedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([loanId])
+}
+
+//////////////////////////////////////////////////////////
+
+model Collateral {
+  id String @id @default(uuid())
+
+  loanId String
+
+  collateralType String
+
+  description String?
+
+  estimatedValue Decimal @db.Decimal(15, 2)
+
+  serialNumber String?
+
+  location String?
+
+  ownerName String?
+
+  ownershipProof String?
+
+  isReleased Boolean @default(false)
+
+  loan Loan @relation(fields: [loanId], references: [id])
+
+  documents Document[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([loanId])
+}
+
+//////////////////////////////////////////////////////////
+
+model RepaymentSchedule {
+  id String @id @default(uuid())
+
+  loanId String
+
+  installmentNumber Int
+
+  dueDate DateTime
+
+  principalAmount Decimal @db.Decimal(15, 2)
+
+  interestAmount Decimal @db.Decimal(15, 2)
+
+  totalAmount Decimal @db.Decimal(15, 2)
+
+  paidAmount Decimal @default(0) @db.Decimal(15, 2)
+
+  balance Decimal @db.Decimal(15, 2)
+
+  status RepaymentStatus @default(PENDING)
+
+  loan Loan @relation(fields: [loanId], references: [id])
+
+  repayments Repayment[]
+
+  penalties Penalty[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId])
+}
+
+//////////////////////////////////////////////////////////
+
+model Repayment {
+  id               String             @id @default(uuid())
+  receiptNumber    String             @unique
+  loanId           String
+  scheduleId       String?
+  // 🟢 FIXED: Removed transactionId scalar string entirely from here
+  amount           Decimal            @db.Decimal(15, 2)
+  paymentMethod    PaymentMethod
+  paymentReference String?
+  receivedById     String
+  remarks          String?
+  paymentDate      DateTime           @default(now())
+  loan             Loan               @relation(fields: [loanId], references: [id])
+  schedule         RepaymentSchedule? @relation(fields: [scheduleId], references: [id])
+  // 🟢 FIXED: Kept the property pointer but removed the relation attributes
+  transaction      Transaction?
+  receivedBy       User               @relation(fields: [receivedById], references: [id])
+  createdAt        DateTime           @default(now())
+
+  @@index([loanId])
+}
+
+model Penalty {
+  id                  String             @id @default(uuid())
+  loanId              String
+  repaymentScheduleId String?
+  amount              Decimal            @db.Decimal(15, 2)
+  reason              String
+  status              PenaltyStatus      @default(PENDING)
+  waived              Boolean            @default(false)
+  // 🟢 FIXED: Removed transactionId scalar string entirely from here
+  loan                Loan               @relation(fields: [loanId], references: [id])
+  repaymentSchedule   RepaymentSchedule? @relation(fields: [repaymentScheduleId], references: [id])
+  // 🟢 FIXED: Kept the property pointer but removed the relation attributes
+  transaction         Transaction?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([loanId])
+}
+
+//////////////////////////////////////////////////////////
+// ACCOUNTING
+//////////////////////////////////////////////////////////
+
+model Transaction {
+  id                String          @id @default(uuid())
+  transactionNumber String          @unique
+  loanId            String?
+  // 🟢 FIXED: Added @unique constraint to secure the 1-to-1 relationship mapping
+  repaymentId       String?         @unique
+  // 🟢 FIXED: Added @unique constraint to secure the 1-to-1 relationship mapping
+  penaltyId         String?         @unique
+  transactionType   TransactionType
+  amount            Decimal         @db.Decimal(15, 2)
+  paymentMethod     PaymentMethod?
+  reference         String?
+  narration         String?
+  transactionDate   DateTime        @default(now())
+  loan              Loan?           @relation(fields: [loanId], references: [id])
+  // 🟢 FIXED: This side strictly dictates the database constraints mapping
+  repayment         Repayment?      @relation(fields: [repaymentId], references: [id])
+  penalty           Penalty?        @relation(fields: [penaltyId], references: [id])
+  ledgerEntries     LedgerEntry[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([transactionNumber])
+}
+
+//////////////////////////////////////////////////////////
+
+model LedgerEntry {
+  id String @id @default(uuid())
+
+  ledgerNumber String @unique
+
+  transactionId String
+
+  debit Decimal @db.Decimal(15, 2)
+
+  credit Decimal @db.Decimal(15, 2)
+
+  balance Decimal @db.Decimal(15, 2)
+
+  narration String
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([transactionId])
+}
+
+//////////////////////////////////////////////////////////
+// COMMUNICATION
+//////////////////////////////////////////////////////////
+
+model Notification {
+  id String @id @default(uuid())
+
+  customerId String?
+
+  title String
+
+  message String
+
+  type NotificationType
+
+  isRead Boolean @default(false)
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+}
+
+//////////////////////////////////////////////////////////
+
+model SmsTemplate {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  name String
+
+  subject String?
+
+  message String
+
+  smsLogs SmsLog[]
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////////
+
+model SmsLog {
+  id                String       @id @default(uuid())
+  customerId        String?
+  phone             String
+  message           String
+  smsStatus         SmsStatus
+  templateId        String?
+  providerMessageId String?
+  sentAt            DateTime?
+  customer          Customer?    @relation(fields: [customerId], references: [id])
+  template          SmsTemplate? @relation(fields: [templateId], references: [id])
+  createdAt         DateTime     @default(now())
+
+  @@index([customerId])
+}
+
+//////////////////////////////////////////////////////////
+// AUDIT
+//////////////////////////////////////////////////////////
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  userId String?
+
+  action String
+
+  entity String
+
+  recordId String
+
+  oldValue Json?
+
+  newValue Json?
+
+  ipAddress String?
+
+  userAgent String?
+
+  user User? @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
