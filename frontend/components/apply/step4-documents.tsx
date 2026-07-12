@@ -1,5 +1,7 @@
 // components/apply/step4-documents.tsx
 // FULL FILE — semantic tokens restored. Same props/behavior.
+// Fix: added min-w-0 to grid + card containers to stop horizontal overflow
+// on small screens.
 
 'use client';
 
@@ -52,18 +54,18 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 space-y-4 overflow-x-hidden">
       <div className="hidden lg:block">
         <h2 className="text-lg font-bold">Upload Documents</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">Upload required supporting documents</p>
       </div>
 
-      <div>
-        <div className="mb-1.5 flex items-center justify-between text-xs">
-          <span className="font-medium text-foreground">
+      <div className="min-w-0">
+        <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2 text-xs">
+          <span className="min-w-0 truncate font-medium text-foreground">
             {requiredUploaded} of {REQUIRED_COUNT} required documents uploaded
           </span>
-          <span className="text-muted-foreground">{uploadedTypes.length} of {DOCUMENT_TYPES.length} total</span>
+          <span className="shrink-0 text-muted-foreground">{uploadedTypes.length} of {DOCUMENT_TYPES.length} total</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
@@ -75,7 +77,7 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
-      <div className="grid gap-2.5 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-2.5 sm:grid-cols-2">
         {DOCUMENT_TYPES.map((doc) => {
           const isUploaded = uploadedTypes.includes(doc.id);
           const isUploading = uploadingType === doc.id;
@@ -83,11 +85,11 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
           return (
             <label
               key={doc.id}
-              className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 transition-colors ${
+              className={`flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 transition-colors ${
                 isUploaded ? 'border-accent/50 bg-accent/10' : 'border-border bg-card hover:bg-muted/60'
               }`}
             >
-              <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
                     isUploaded ? 'bg-accent/20 text-accent-foreground' : 'bg-muted text-muted-foreground'
@@ -101,9 +103,9 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
                     <FileImage size={16} />
                   )}
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="truncate text-sm font-medium text-foreground">{doc.label}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <p className="min-w-0 truncate text-sm font-medium text-foreground">{doc.label}</p>
                     {!doc.required && (
                       <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                         optional

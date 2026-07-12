@@ -1,5 +1,7 @@
 // components/apply/step5-review.tsx
 // FULL FILE — semantic tokens restored. onEditStep optional, unchanged.
+// Fix: added min-w-0 to grid/flex containers and wrap long values instead
+// of letting them force the grid wider than the viewport (mobile overflow).
 
 'use client';
 
@@ -27,17 +29,17 @@ function ReviewCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Icon size={15} className="text-primary" />
-          {title}
+    <div className="min-w-0 rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
+        <h3 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+          <Icon size={15} className="shrink-0 text-primary" />
+          <span className="truncate">{title}</span>
         </h3>
         {onEditStep && step && (
           <button
             type="button"
             onClick={() => onEditStep(step)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+            className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-primary"
           >
             <Pencil size={12} /> Edit
           </button>
@@ -50,24 +52,24 @@ function ReviewCard({
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium text-foreground">{value}</p>
+    <div className="min-w-0">
+      <p className="truncate text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium break-words text-foreground">{value}</p>
     </div>
   );
 }
 
 export function Step5Review({ formData, productName, uploadedCount, onEditStep }: Props) {
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 space-y-4 overflow-x-hidden">
       <div className="hidden lg:block">
         <h2 className="text-lg font-bold">Review Your Application</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">Your application has already been recorded — review the summary below</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
         <ReviewCard icon={User} title="Personal Information" step={1} onEditStep={onEditStep}>
-          <div className="grid grid-cols-2 gap-2.5 text-sm">
+          <div className="grid min-w-0 grid-cols-2 gap-2.5 text-sm">
             <Field label="Name" value={`${formData.firstName} ${formData.lastName}`} />
             <Field label="Phone" value={formData.phone} />
             <Field label="Email" value={formData.email || '—'} />
@@ -76,17 +78,17 @@ export function Step5Review({ formData, productName, uploadedCount, onEditStep }
         </ReviewCard>
 
         <ReviewCard icon={Landmark} title="Loan Details" step={2} onEditStep={onEditStep}>
-          <div className="grid grid-cols-2 gap-2.5 text-sm">
+          <div className="grid min-w-0 grid-cols-2 gap-2.5 text-sm">
             <Field label="Loan Type" value={productName || 'Not selected'} />
             <Field label="Amount" value={`₦${Number(formData.loanAmount || 0).toLocaleString()}`} />
-            <div className="col-span-2">
+            <div className="col-span-2 min-w-0">
               <Field label="Purpose" value={formData.purpose || '—'} />
             </div>
           </div>
         </ReviewCard>
 
         <ReviewCard icon={Users} title="Guarantor" step={3} onEditStep={onEditStep}>
-          <div className="grid grid-cols-2 gap-2.5 text-sm">
+          <div className="grid min-w-0 grid-cols-2 gap-2.5 text-sm">
             <Field label="Name" value={formData.guarantorName || '—'} />
             <Field label="Relationship" value={formData.guarantorRelationship || '—'} />
           </div>
