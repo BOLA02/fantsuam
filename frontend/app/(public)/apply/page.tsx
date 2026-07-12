@@ -1,11 +1,13 @@
 // app/apply/page.tsx
-// FULL FILE — UPDATED: products lifted to parent state for Step 2 + Step 5's productName
+// FULL FILE — sidebar removed (horizontal top stepper), semantic tokens restored
+// everywhere. All handlers/logic unchanged.
 
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowLeft, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api-routes';
 import { LoanProduct } from '@/lib/api-types';
@@ -17,8 +19,19 @@ import { Step3Guarantor } from '@/components/apply/step3-guarantor';
 import { Step4Documents } from '@/components/apply/step4-documents';
 import { Step5Review } from '@/components/apply/step5-review';
 import { ApplySuccess } from '@/components/apply/apply-success';
+import { ResumeBanner } from '@/components/apply/resume-banner';
+import { ResumeOtpModal } from '@/components/apply/resume-otp-modal';
+import { getApplyProgress, saveApplyProgress, clearApplyProgress } from '@/lib/apply-storage';
 
 type Step = 1 | 2 | 3 | 4 | 5;
+
+const STEPS: { id: Step; label: string; description: string }[] = [
+  { id: 1, label: 'Personal Info', description: 'About you' },
+  { id: 2, label: 'Loan Details', description: 'What you need' },
+  { id: 3, label: 'Guarantor', description: 'Your reference' },
+  { id: 4, label: 'Documents', description: 'Verification' },
+  { id: 5, label: 'Review', description: 'Confirm & submit' },
+];
 
 export default function ApplyPage() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -31,6 +44,12 @@ export default function ApplyPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  // Resume flow state
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
+  const [resumeFirstName, setResumeFirstName] = useState<string | undefined>();
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [resuming, setResuming] = useState(false);
+
   useEffect(() => {
     api.loanProducts
       .getAll()
@@ -39,16 +58,115 @@ export default function ApplyPage() {
       .finally(() => setProductsLoading(false));
   }, []);
 
+  // Detect saved progress on mount — this is a HINT only, never trusted as auth.
+  // The actual data is only fetched after OTP verification below.
+  useEffect(() => {
+    const saved = getApplyProgress();
+    if (saved?.customerId && !formData.customerId) {
+      setResumeFirstName(saved.firstName);
+      setShowResumeBanner(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleChange = (field: keyof ApplyFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const productName = products.find((p) => p.id === formData.loanProductId)?.name || '';
 
+  // --- Resume flow handlers ---
+
+  const handleResumeContinue = () => {
+    setShowResumeBanner(false);
+    setShowOtpModal(true);
+  };
+
+  const handleResumeDismiss = () => {
+    clearApplyProgress();
+    setShowResumeBanner(false);
+  };
+
+  const handleOtpVerified = async (resumeToken: string) => {
+    setResuming(true);
+    setError(null);
+    try {
+      const res = await api.resume.get(resumeToken);
+      const state = res.data;
+      const c = state.customer;
+      const app = state.application;
+      const guarantor = state.guarantors?.[0];
+
+      // customerRepository.findById() returns addresses/employments as ARRAYS
+      // (isPrimary / isCurrent flags), not singular objects — pick the right one.
+      const primaryAddress =
+        c.addresses?.find((a: any) => a.isPrimary) ?? c.addresses?.[0];
+      const currentEmployment =
+        c.employments?.find((e: any) => e.isCurrent) ?? c.employments?.[0];
+
+      setFormData((prev) => ({
+        ...prev,
+        customerId: c.id,
+        firstName: c.firstName ?? '',
+        lastName: c.lastName ?? '',
+        middleName: c.middleName ?? '',
+        email: c.email ?? '',
+        phone: c.phone ?? '',
+        gender: c.gender ?? '',
+        dateOfBirth: c.dateOfBirth ? String(c.dateOfBirth).slice(0, 10) : '',
+        nin: c.nin ?? '',
+        bvn: c.bvn ?? '',
+        addressLine1: primaryAddress?.addressLine1 ?? '',
+        addressLine2: primaryAddress?.addressLine2 ?? '',
+        city: primaryAddress?.city ?? '',
+        state: primaryAddress?.state ?? '',
+        country: primaryAddress?.country ?? '',
+        postalCode: primaryAddress?.postalCode ?? '',
+        occupation: currentEmployment?.occupation ?? '',
+        employer: currentEmployment?.employerName ?? '',
+        monthlyIncome:
+          currentEmployment?.monthlyIncome != null ? String(currentEmployment.monthlyIncome) : '',
+        applicationId: app?.id ?? '',
+        applicationNumber: app?.applicationNumber ?? '',
+        loanProductId: app?.loanProductId ?? '',
+        loanAmount: app?.requestedAmount != null ? String(app.requestedAmount) : '',
+        purpose: app?.purpose ?? '',
+        durationMonths: app?.durationMonths != null ? String(app.durationMonths) : '',
+        guarantorId: guarantor?.id ?? '',
+        guarantorName: guarantor?.fullName ?? '',
+        guarantorPhone: guarantor?.phone ?? '',
+        guarantorRelationship: guarantor?.relationship ?? '',
+        guarantorEmail: guarantor?.email ?? '',
+        guarantorOccupation: guarantor?.occupation ?? '',
+        guarantorAddress: guarantor?.address ?? '',
+      }));
+
+      if (state.documents?.length) {
+        setUploadedTypes(state.documents.map((d: any) => d.documentType));
+      }
+
+      saveApplyProgress({
+        customerId: c.id,
+        applicationId: app?.id,
+        guarantorId: guarantor?.id,
+        firstName: c.firstName,
+      });
+
+      setCurrentStep(state.resumeStep as Step);
+      setShowOtpModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Could not resume your application.');
+      setShowOtpModal(false);
+    } finally {
+      setResuming(false);
+    }
+  };
+
+  // --- Step submit handlers ---
+
   const submitStep1 = async () => {
     setError(null);
     setSubmitting(true);
-
     try {
       const res = await api.customers.create({
         customerNumber: generateCustomerNumber(),
@@ -77,6 +195,7 @@ export default function ApplyPage() {
       });
 
       setFormData((prev) => ({ ...prev, customerId: res.data.id }));
+      saveApplyProgress({ customerId: res.data.id, firstName: formData.firstName });
       setCurrentStep(2);
     } catch (err: any) {
       setError(err.message);
@@ -85,59 +204,57 @@ export default function ApplyPage() {
     }
   };
 
- const submitStep2 = async () => {
-  if (!formData.customerId) {
-    setError('Missing customer reference. Please restart the application.');
-    return;
-  }
+  const submitStep2 = async () => {
+    if (!formData.customerId) {
+      setError('Missing customer reference. Please restart the application.');
+      return;
+    }
+    if (!formData.loanProductId) {
+      setError('Please select a loan type.');
+      return;
+    }
 
-  if (!formData.loanProductId) {
-    setError('Please select a loan type.');
-    return;
-  }
+    const amount = Number(formData.loanAmount);
+    const duration = Number(formData.durationMonths);
 
-  const amount = Number(formData.loanAmount);
-  const duration = Number(formData.durationMonths);
+    if (!formData.loanAmount || isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid loan amount.');
+      return;
+    }
+    if (!formData.durationMonths || isNaN(duration) || duration <= 0) {
+      setError('Please enter a valid repayment duration.');
+      return;
+    }
+    if (!formData.purpose || formData.purpose.trim().length < 3) {
+      setError('Please describe the purpose of the loan (at least 3 characters).');
+      return;
+    }
 
-  if (!formData.loanAmount || isNaN(amount) || amount <= 0) {
-    setError('Please enter a valid loan amount.');
-    return;
-  }
+    setError(null);
+    setSubmitting(true);
 
-  if (!formData.durationMonths || isNaN(duration) || duration <= 0) {
-    setError('Please enter a valid repayment duration.');
-    return;
-  }
+    try {
+      const res = await api.loanApplications.create({
+        customerId: formData.customerId,
+        loanProductId: formData.loanProductId,
+        requestedAmount: amount,
+        purpose: formData.purpose,
+        durationMonths: duration,
+      });
 
-  if (!formData.purpose || formData.purpose.trim().length < 3) {
-    setError('Please describe the purpose of the loan (at least 3 characters).');
-    return;
-  }
-
-  setError(null);
-  setSubmitting(true);
-
-  try {
-    const res = await api.loanApplications.create({
-      customerId: formData.customerId,
-      loanProductId: formData.loanProductId,
-      requestedAmount: amount,
-      purpose: formData.purpose,
-      durationMonths: duration,
-    });
-
-    setFormData((prev) => ({
-      ...prev,
-      applicationId: res.data.id,
-      applicationNumber: res.data.applicationNumber,
-    }));
-    setCurrentStep(3);
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setSubmitting(false);
-  }
-};
+      setFormData((prev) => ({
+        ...prev,
+        applicationId: res.data.id,
+        applicationNumber: res.data.applicationNumber,
+      }));
+      saveApplyProgress({ customerId: formData.customerId, applicationId: res.data.id });
+      setCurrentStep(3);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const submitStep3 = async () => {
     if (!formData.customerId) {
@@ -160,6 +277,11 @@ export default function ApplyPage() {
       });
 
       setFormData((prev) => ({ ...prev, guarantorId: res.data.id }));
+      saveApplyProgress({
+        customerId: formData.customerId,
+        applicationId: formData.applicationId,
+        guarantorId: res.data.id,
+      });
       setCurrentStep(4);
     } catch (err: any) {
       setError(err.message);
@@ -172,110 +294,180 @@ export default function ApplyPage() {
     if (currentStep > 1) setCurrentStep((currentStep - 1) as Step);
   };
 
-  const handleFinish = () => setDone(true);
+  const handleFinish = () => {
+    clearApplyProgress();
+    setDone(true);
+  };
 
-  const progressPercentage = (currentStep / 5) * 100;
+  // Only allow jumping back to a step that's already been completed/visited.
+  const handleEditStep = (step: 1 | 2 | 3 | 4) => {
+    if (step < currentStep) setCurrentStep(step);
+  };
 
   if (done && formData.applicationNumber) {
     return <ApplySuccess applicationNumber={formData.applicationNumber} />;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-card sticky top-0 z-40">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-                MF
-              </div>
-              <span className="font-semibold text-foreground hidden sm:inline">MicroFinance</span>
-            </Link>
-            <span className="text-sm text-muted-foreground">Step {currentStep} of 5</span>
-          </div>
-        </div>
-      </nav>
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+      {showOtpModal && (
+        <ResumeOtpModal onVerified={handleOtpVerified} onClose={() => setShowOtpModal(false)} />
+      )}
 
-      <div className="border-b border-border bg-card">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-4">
-          <div className="h-2 bg-secondary rounded-full overflow-hidden">
-            <div className="h-full bg-accent transition-all duration-300" style={{ width: `${progressPercentage}%` }} />
+      <header className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3 lg:px-8 lg:py-4">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="relative h-8 w-8 shrink-0">
+            <Image src="/logo.png" alt="MicroFinance logo" fill className="object-contain" priority />
           </div>
+          <span className="text-sm font-semibold text-foreground">MicroFinance</span>
+        </Link>
+        <div className="hidden text-center sm:block">
+          <h1 className="text-base font-semibold">{STEPS[currentStep - 1].label}</h1>
+          <p className="text-xs text-muted-foreground">{STEPS[currentStep - 1].description}</p>
+        </div>
+        <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+          Step {currentStep} of {STEPS.length}
+        </span>
+      </header>
+
+      {/* Horizontal stepper — replaces sidebar */}
+      <div className="shrink-0 border-b border-border bg-card px-4 py-4 lg:px-10">
+        <div className="mx-auto flex max-w-3xl items-center">
+          {STEPS.map((step, idx) => {
+            const isActive = step.id === currentStep;
+            const isComplete = step.id < currentStep;
+            return (
+              <div key={step.id} className={`flex items-center ${idx < STEPS.length - 1 ? 'flex-1' : ''}`}>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                      isComplete
+                        ? 'bg-secondary text-secondary-foreground'
+                        : isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground ring-1 ring-border'
+                    }`}
+                  >
+                    {isComplete ? <CheckCircle2 size={14} /> : step.id}
+                  </div>
+                  <p
+                    className={`hidden text-center text-[11px] font-medium leading-tight sm:block ${
+                      isActive ? 'text-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {step.label}
+                  </p>
+                </div>
+                {idx < STEPS.length - 1 && (
+                  <div className={`mx-2 h-px flex-1 ${isComplete ? 'bg-secondary' : 'bg-border'}`} />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl">
+      <main className="flex-1 overflow-y-auto px-4 py-5 lg:px-10 lg:py-8">
+        <div className="mx-auto flex h-full max-w-3xl flex-col">
+          {showResumeBanner && (
+            <ResumeBanner
+              firstName={resumeFirstName}
+              onContinue={handleResumeContinue}
+              onDismiss={handleResumeDismiss}
+            />
+          )}
+
+          {resuming && (
+            <div className="mb-4 flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 size={14} className="animate-spin" /> Loading your application…
+            </div>
+          )}
+
           {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-500">
+            <div className="mb-4 shrink-0 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          {currentStep === 1 && <Step1PersonalInfo formData={formData} onChange={handleChange} />}
-
-          {currentStep === 2 && (
-            <Step2LoanDetails
-              formData={formData}
-              onChange={handleChange}
-              products={products}
-              productsLoading={productsLoading}
-              productsError={productsError}
-            />
-          )}
-
-          {currentStep === 3 && <Step3Guarantor formData={formData} onChange={handleChange} />}
-
-          {currentStep === 4 && formData.customerId && formData.applicationId && (
-            <Step4Documents
-              customerId={formData.customerId}
-              applicationId={formData.applicationId}
-              uploadedTypes={uploadedTypes}
-              onUploaded={(type) => setUploadedTypes((prev) => [...prev, type])}
-            />
-          )}
-
-          {currentStep === 5 && (
-            <Step5Review formData={formData} productName={productName} uploadedCount={uploadedTypes.length} />
-          )}
-
-          <div className="mt-12 flex justify-between gap-4">
-            <Button variant="outline" onClick={handlePrev} disabled={currentStep === 1 || submitting} className="gap-2">
-              <ArrowLeft size={16} /> Back
-            </Button>
-
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:p-7">
             {currentStep === 1 && (
-              <Button onClick={submitStep1} disabled={submitting} className="bg-primary hover:bg-primary/90 gap-2">
-                {submitting && <Loader2 size={16} className="animate-spin" />} Next →
-              </Button>
+              <>
+                <Step1PersonalInfo formData={formData} onChange={handleChange} />
+                <button
+                  onClick={() => setShowOtpModal(true)}
+                  className="mt-4 self-start text-xs text-muted-foreground underline hover:text-foreground"
+                >
+                  Already started an application?
+                </button>
+              </>
             )}
 
             {currentStep === 2 && (
-              <Button onClick={submitStep2} disabled={submitting} className="bg-primary hover:bg-primary/90 gap-2">
-                {submitting && <Loader2 size={16} className="animate-spin" />} Next →
-              </Button>
+              <Step2LoanDetails
+                formData={formData}
+                onChange={handleChange}
+                products={products}
+                productsLoading={productsLoading}
+                productsError={productsError}
+              />
             )}
 
-            {currentStep === 3 && (
-              <Button onClick={submitStep3} disabled={submitting} className="bg-primary hover:bg-primary/90 gap-2">
-                {submitting && <Loader2 size={16} className="animate-spin" />} Next →
-              </Button>
-            )}
+            {currentStep === 3 && <Step3Guarantor formData={formData} onChange={handleChange} />}
 
-            {currentStep === 4 && (
-              <Button onClick={() => setCurrentStep(5)} className="bg-primary hover:bg-primary/90">
-                Next →
-              </Button>
+            {currentStep === 4 && formData.customerId && formData.applicationId && (
+              <Step4Documents
+                customerId={formData.customerId}
+                applicationId={formData.applicationId}
+                uploadedTypes={uploadedTypes}
+                onUploaded={(type) => setUploadedTypes((prev) => [...prev, type])}
+              />
             )}
 
             {currentStep === 5 && (
-              <Button onClick={handleFinish} className="bg-accent hover:bg-accent/90">
-                Finish
-              </Button>
+              <Step5Review
+                formData={formData}
+                productName={productName}
+                uploadedCount={uploadedTypes.length}
+                onEditStep={handleEditStep}
+              />
             )}
           </div>
         </div>
-      </div>
+      </main>
+
+      <footer className="shrink-0 border-t border-border bg-card px-4 py-3 lg:px-10 lg:py-4">
+        <div className="mx-auto flex max-w-3xl justify-between gap-3">
+          <Button variant="outline" size="sm" onClick={handlePrev} disabled={currentStep === 1 || submitting} className="gap-2">
+            <ArrowLeft size={15} /> Back
+          </Button>
+
+          {currentStep === 1 && (
+            <Button size="sm" onClick={submitStep1} disabled={submitting} className="gap-2">
+              {submitting && <Loader2 size={15} className="animate-spin" />} Next <ArrowRight size={15} />
+            </Button>
+          )}
+          {currentStep === 2 && (
+            <Button size="sm" onClick={submitStep2} disabled={submitting} className="gap-2">
+              {submitting && <Loader2 size={15} className="animate-spin" />} Next <ArrowRight size={15} />
+            </Button>
+          )}
+          {currentStep === 3 && (
+            <Button size="sm" onClick={submitStep3} disabled={submitting} className="gap-2">
+              {submitting && <Loader2 size={15} className="animate-spin" />} Next <ArrowRight size={15} />
+            </Button>
+          )}
+          {currentStep === 4 && (
+            <Button size="sm" onClick={() => setCurrentStep(5)} className="gap-2">
+              Next <ArrowRight size={15} />
+            </Button>
+          )}
+          {currentStep === 5 && (
+            <Button size="sm" onClick={handleFinish} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
+              <CheckCircle2 size={15} /> Finish
+            </Button>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }

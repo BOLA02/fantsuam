@@ -1,6 +1,6 @@
 // lib/api-types.ts
 // FULL FILE — UPDATED: LoanProduct repaymentFrequency narrowed to union, added fees/requirements
-
+export type RepaymentConfirmationStatus = 'PENDING_VERIFICATION' | 'CONFIRMED';
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;
@@ -13,22 +13,30 @@ export interface Branch {
   name: string;
 }
 
+// lib/api-types.ts — UPDATE CustomerAddress and CustomerEmployment, rest of file unchanged
+
 export interface CustomerAddress {
+  id: string;
   addressLine1: string;
   addressLine2?: string;
   city: string;
   state: string;
   country: string;
   postalCode?: string;
+  isPrimary: boolean;
 }
 
 export interface CustomerEmployment {
+  id: string;
   employerName: string;
   occupation: string;
   monthlyIncome: number;
   employerAddress?: string;
   employmentDate?: string;
+  isCurrent: boolean;
 }
+
+// lib/api-types.ts — UPDATE only the Customer interface, rest of file unchanged
 
 export interface Customer {
   id: string;
@@ -37,7 +45,7 @@ export interface Customer {
   lastName: string;
   middleName?: string;
   phone: string;
-  email?: string;
+  email: string | null;
   gender: 'MALE' | 'FEMALE';
   status: 'ACTIVE' | 'INACTIVE';
   branchId?: string;
@@ -47,6 +55,8 @@ export interface Customer {
   dateOfBirth?: string;
   nin?: string;
   bvn?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface RecentApplication {
@@ -159,6 +169,65 @@ export type LoanStatus =
   | 'WRITTEN_OFF'
   | 'CANCELLED';
 
+
+
+export interface RepaymentScheduleEntry {
+  id: string;
+  installmentNumber: number;
+  dueDate: string;
+  principalAmount: number;
+  interestAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  balance: number;
+  status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
+}
+
+export interface LoanDisbursementRecord {
+  id: string;
+  referenceNumber: string;
+  amount: number;
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
+  accountName?: string;
+  accountNumber?: string;
+  bankName?: string;
+  remarks?: string;
+  disbursedAt: string;
+}
+
+export interface RepaymentRecord {
+  id: string;
+  receiptNumber: string;
+  amount: number;
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
+  paymentReference?: string;
+  remarks?: string;
+  paymentDate: string;
+}
+
+export interface PenaltyRecord {
+  id: string;
+  amount: number;
+  reason: string;
+  status: string;
+  waived: boolean;
+  createdAt: string;
+}
+
+export interface LoanStatusHistoryEntry {
+  id: string;
+  status: LoanStatus;
+  remarks?: string;
+  createdAt: string;
+  changedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+// Extend the existing `Loan` interface with the fields LoanRepository.findById
+// includes but LoanRepository.findAll (list view) does not.
 export interface Loan {
   id: string;
   loanNumber: string;
@@ -181,19 +250,30 @@ export interface Loan {
   remarks?: string;
   createdAt: string;
   updatedAt: string;
-  // Expected to be included by the API (joined from Customer + next RepaymentSchedule row)
   customer?: {
     id: string;
     firstName: string;
     lastName: string;
+    phone?: string;
+    email?: string;
+  };
+  loanProduct?: {
+    id: string;
+    name: string;
+    productCode: string;
   };
   nextInstallment?: {
     dueDate: string;
     totalAmount: number;
     status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
   } | null;
+  // Present on getById (detail view) only — undefined on list view.
+  schedules?: RepaymentScheduleEntry[];
+  disbursements?: LoanDisbursementRecord[];
+  repayments?: RepaymentRecord[];
+  penalties?: PenaltyRecord[];
+  statusHistory?: LoanStatusHistoryEntry[];
 }
-
 export interface StatusHistoryEntry {
   id: string;
   status: ApplicationStatus;
@@ -224,4 +304,133 @@ export interface LoanApplication {
   assignedOfficer?: AssignedOfficer | null;
   documents?: DocumentRecord[];
   statusHistory?: StatusHistoryEntry[];
+}
+
+
+
+
+export interface Repayment {
+  id: string;
+  receiptNumber: string;
+  loanId: string;
+  scheduleId?: string | null;
+  amount: number;
+  interestApplied: number;
+  principalApplied: number;
+  transactionGroupId: string;
+  confirmationStatus: RepaymentConfirmationStatus;
+  confirmedById?: string | null;
+  confirmedAt?: string | null;
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
+  paymentReference?: string | null;
+  receivedById: string;
+  remarks?: string | null;
+  paymentDate: string;
+  createdAt: string;
+  loan?: {
+    id: string;
+    loanNumber: string;
+    customer?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+  receivedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  confirmedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+}
+
+export type TransactionType =
+  | 'LOAN_DISBURSEMENT'
+  | 'REPAYMENT'
+  | 'INTEREST'
+  | 'PENALTY'
+  | 'PROCESSING_FEE'
+  | 'ADJUSTMENT';
+
+export interface LedgerTransaction {
+  id: string;
+  transactionNumber: string;
+  loanId: string | null;
+  transactionType: TransactionType;
+  amount: number;
+  paymentMethod?: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY' | null;
+  reference?: string | null;
+  narration?: string | null;
+  transactionDate: string;
+  loan?: {
+    id: string;
+    loanNumber: string;
+    customer?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+  repayment?: {
+    id: string;
+    receiptNumber: string;
+    receivedBy?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    };
+  } | null;
+}
+
+export interface LedgerEntry {
+  id: string;
+  ledgerNumber: string;
+  transactionId: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  narration: string;
+  createdAt: string;
+  transaction: LedgerTransaction;
+}
+
+
+export type SmsStatus = 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED';
+
+export interface SmsTemplateRef {
+  id: string;
+  code: string;
+  name: string;
+  subject?: string | null;
+  message: string;
+  active: boolean;
+}
+
+export interface SmsLog {
+  id: string;
+  customerId?: string | null;
+  phone: string;
+  message: string;
+  smsStatus: SmsStatus;
+  templateId?: string | null;
+  providerMessageId?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+  customer?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  template?: SmsTemplateRef | null;
+}
+
+export interface SmsTemplateOption {
+  id: string;
+  code: string;
+  name: string;
+  message: string;
 }

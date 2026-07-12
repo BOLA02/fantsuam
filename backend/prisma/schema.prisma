@@ -77,6 +77,13 @@ enum RepaymentFrequency {
   MONTHLY
 }
 
+enum RepaymentConfirmationStatus {
+  PENDING_VERIFICATION
+  CONFIRMED
+}
+
+
+
 enum PaymentMethod {
   CASH
   BANK_TRANSFER
@@ -196,7 +203,10 @@ model User {
 
   loanStatusHistory LoanStatusHistory[]
 
-  repaymentsReceived Repayment[]
+  
+
+  repaymentsReceived  Repayment[] @relation("RepaymentReceivedBy")
+  repaymentsConfirmed Repayment[] @relation("RepaymentConfirmedBy")
 
   auditLogs AuditLog[]
 
@@ -779,6 +789,8 @@ model Collateral {
 
 //////////////////////////////////////////////////////////
 
+
+
 model RepaymentSchedule {
   id String @id @default(uuid())
 
@@ -795,6 +807,12 @@ model RepaymentSchedule {
   totalAmount Decimal @db.Decimal(15, 2)
 
   paidAmount Decimal @default(0) @db.Decimal(15, 2)
+
+  // NEW: split tracking, needed for interest-first allocation across
+  // multiple partial payments against the same installment.
+  paidInterest Decimal @default(0) @db.Decimal(15, 2)
+
+  paidPrincipal Decimal @default(0) @db.Decimal(15, 2)
 
   balance Decimal @db.Decimal(15, 2)
 
@@ -814,29 +832,51 @@ model RepaymentSchedule {
   @@index([loanId])
 }
 
-//////////////////////////////////////////////////////////
-
 model Repayment {
-  id               String             @id @default(uuid())
-  receiptNumber    String             @unique
+  id               String                       @id @default(uuid())
+  receiptNumber    String                       @unique
   loanId           String
   scheduleId       String?
-  // 🟢 FIXED: Removed transactionId scalar string entirely from here
-  amount           Decimal            @db.Decimal(15, 2)
+  amount           Decimal                      @db.Decimal(15, 2)
+
+  // NEW: how much of THIS row's amount went to interest vs principal
+  // for the installment it's linked to. Both 0 for a scheduleId-null
+  // overpayment/advance-credit row.
+  interestApplied  Decimal                      @default(0) @db.Decimal(15, 2)
+  principalApplied Decimal                      @default(0) @db.Decimal(15, 2)
+
+  // NEW: ties multiple rows from one physical payment event together
+  // (waterfall can split a single payment across several installments).
+  transactionGroupId String
+
+  // NEW: two-step bank-transfer confirmation. Cash payments are created
+  // CONFIRMED immediately; bank transfers start PENDING_VERIFICATION.
+  confirmationStatus RepaymentConfirmationStatus
+  confirmedById      String?
+  confirmedAt        DateTime?
+
   paymentMethod    PaymentMethod
   paymentReference String?
   receivedById     String
   remarks          String?
-  paymentDate      DateTime           @default(now())
-  loan             Loan               @relation(fields: [loanId], references: [id])
-  schedule         RepaymentSchedule? @relation(fields: [scheduleId], references: [id])
-  // 🟢 FIXED: Kept the property pointer but removed the relation attributes
+  paymentDate      DateTime                     @default(now())
+
+  loan             Loan                         @relation(fields: [loanId], references: [id])
+  schedule         RepaymentSchedule?           @relation(fields: [scheduleId], references: [id])
   transaction      Transaction?
-  receivedBy       User               @relation(fields: [receivedById], references: [id])
-  createdAt        DateTime           @default(now())
+
+  receivedBy       User   @relation("RepaymentReceivedBy", fields: [receivedById], references: [id])
+  confirmedBy      User?  @relation("RepaymentConfirmedBy", fields: [confirmedById], references: [id])
+
+  createdAt        DateTime                     @default(now())
 
   @@index([loanId])
+  @@index([transactionGroupId])
+  @@index([confirmationStatus])
 }
+//////////////////////////////////////////////////////////
+
+
 
 model Penalty {
   id                  String             @id @default(uuid())
@@ -971,6 +1011,23 @@ model SmsLog {
 
   @@index([customerId])
 }
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  purpose    String    @default("RESUME_APPLICATION")
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, purpose])
+}
+
+
+
+
 
 //////////////////////////////////////////////////////////
 // AUDIT

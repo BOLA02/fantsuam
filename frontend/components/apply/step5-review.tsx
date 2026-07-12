@@ -1,73 +1,100 @@
 // components/apply/step5-review.tsx
+// FULL FILE — semantic tokens restored. onEditStep optional, unchanged.
 
 'use client';
 
+import { User, Landmark, Users, FileCheck2, Pencil } from 'lucide-react';
 import { ApplyFormData } from './apply-types';
 
 interface Props {
   formData: ApplyFormData;
   productName: string;
   uploadedCount: number;
+  onEditStep?: (step: 1 | 2 | 3 | 4) => void;
 }
 
-export function Step5Review({ formData, productName, uploadedCount }: Props) {
+function ReviewCard({
+  icon: Icon,
+  title,
+  step,
+  onEditStep,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  step?: 1 | 2 | 3 | 4;
+  onEditStep?: (step: 1 | 2 | 3 | 4) => void;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Review Your Application</h2>
-        <p className="mt-2 text-muted-foreground">Your application has already been recorded — review the summary below</p>
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Icon size={15} className="text-primary" />
+          {title}
+        </h3>
+        {onEditStep && step && (
+          <button
+            type="button"
+            onClick={() => onEditStep(step)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+          >
+            <Pencil size={12} /> Edit
+          </button>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium text-foreground">{value}</p>
+    </div>
+  );
+}
+
+export function Step5Review({ formData, productName, uploadedCount, onEditStep }: Props) {
+  return (
+    <div className="space-y-4">
+      <div className="hidden lg:block">
+        <h2 className="text-lg font-bold">Review Your Application</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">Your application has already been recorded — review the summary below</p>
       </div>
 
-      <div className="space-y-6">
-        <div className="border border-border rounded-lg p-6 bg-card">
-          <h3 className="font-semibold text-foreground mb-4">Personal Information</h3>
-          <div className="grid gap-4 sm:grid-cols-2 text-sm">
-            <div>
-              <p className="text-muted-foreground">Name</p>
-              <p className="font-medium text-foreground">{formData.firstName} {formData.lastName}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Email</p>
-              <p className="font-medium text-foreground">{formData.email || '—'}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Phone</p>
-              <p className="font-medium text-foreground">{formData.phone}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Monthly Income</p>
-              <p className="font-medium text-foreground">₦{Number(formData.monthlyIncome || 0).toLocaleString()}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ReviewCard icon={User} title="Personal Information" step={1} onEditStep={onEditStep}>
+          <div className="grid grid-cols-2 gap-2.5 text-sm">
+            <Field label="Name" value={`${formData.firstName} ${formData.lastName}`} />
+            <Field label="Phone" value={formData.phone} />
+            <Field label="Email" value={formData.email || '—'} />
+            <Field label="Monthly Income" value={`₦${Number(formData.monthlyIncome || 0).toLocaleString()}`} />
+          </div>
+        </ReviewCard>
+
+        <ReviewCard icon={Landmark} title="Loan Details" step={2} onEditStep={onEditStep}>
+          <div className="grid grid-cols-2 gap-2.5 text-sm">
+            <Field label="Loan Type" value={productName || 'Not selected'} />
+            <Field label="Amount" value={`₦${Number(formData.loanAmount || 0).toLocaleString()}`} />
+            <div className="col-span-2">
+              <Field label="Purpose" value={formData.purpose || '—'} />
             </div>
           </div>
-        </div>
+        </ReviewCard>
 
-        <div className="border border-border rounded-lg p-6 bg-card">
-          <h3 className="font-semibold text-foreground mb-4">Loan Details</h3>
-          <div className="grid gap-4 sm:grid-cols-2 text-sm">
-            <div>
-              <p className="text-muted-foreground">Loan Type</p>
-              <p className="font-medium text-foreground">{productName || 'Not selected'}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Amount</p>
-              <p className="font-medium text-foreground">₦{Number(formData.loanAmount || 0).toLocaleString()}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <p className="text-muted-foreground">Purpose</p>
-              <p className="font-medium text-foreground">{formData.purpose}</p>
-            </div>
+        <ReviewCard icon={Users} title="Guarantor" step={3} onEditStep={onEditStep}>
+          <div className="grid grid-cols-2 gap-2.5 text-sm">
+            <Field label="Name" value={formData.guarantorName || '—'} />
+            <Field label="Relationship" value={formData.guarantorRelationship || '—'} />
           </div>
-        </div>
+        </ReviewCard>
 
-        <div className="border border-border rounded-lg p-6 bg-card">
-          <h3 className="font-semibold text-foreground mb-4">Guarantor</h3>
-          <p className="text-sm text-foreground">{formData.guarantorName} · {formData.guarantorRelationship}</p>
-        </div>
-
-        <div className="border border-border rounded-lg p-6 bg-card">
-          <h3 className="font-semibold text-foreground mb-4">Documents</h3>
-          <p className="text-sm text-muted-foreground">{uploadedCount} document(s) uploaded</p>
-        </div>
+        <ReviewCard icon={FileCheck2} title="Documents" step={4} onEditStep={onEditStep}>
+          <p className="text-sm font-medium text-foreground">{uploadedCount} document(s) uploaded</p>
+        </ReviewCard>
       </div>
     </div>
   );

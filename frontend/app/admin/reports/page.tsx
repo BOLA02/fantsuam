@@ -4,41 +4,26 @@ import { BarChart3, TrendingUp, Download, Calendar } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
 import { Button } from '@/components/ui/button';
-import { mockData } from '@/lib/mock-data';
 
 export default function ReportsPage() {
-  // Calculate report statistics
-  const totalLoans = mockData.loans.length;
-  const totalDisbursed = mockData.loans.reduce((sum, loan) => sum + loan.principalAmount, 0);
-  const totalRepayments = mockData.repayments
-    .filter(r => r.status === 'Paid')
-    .reduce((sum, r) => sum + r.amount, 0);
-  const totalOutstanding = mockData.loans
-    .filter(l => l.status !== 'Completed')
-    .reduce((sum, l) => sum + (l.principalAmount - (totalRepayments / totalLoans)), 0);
-  const defaultRate = (mockData.loans.filter(l => l.status === 'Defaulted').length / totalLoans) * 100;
-  const totalInterestEarned = mockData.ledger
-    .filter(l => l.transactionType === 'Interest')
-    .reduce((sum, l) => sum + l.credit, 0);
-  const totalPenalties = mockData.ledger
-    .filter(l => l.transactionType === 'Penalty')
-    .reduce((sum, l) => sum + l.credit, 0);
+  // Placeholder values - ready to be wired up later
+  const totalDisbursed = 0;
+  const totalRepayments = 0;
+  const totalOutstanding = 0;
+  const defaultRate = 0;
+  const totalInterestEarned = 0;
+  const totalPenalties = 0;
 
-  const loanStatusData = [
-    { label: 'Active', value: mockData.loans.filter(l => l.status === 'Active').length },
-    { label: 'Completed', value: mockData.loans.filter(l => l.status === 'Completed').length },
-    { label: 'Suspended', value: mockData.loans.filter(l => l.status === 'Suspended').length },
-    { label: 'Defaulted', value: mockData.loans.filter(l => l.status === 'Defaulted').length },
+  const loanStatusData: { label: string; value: number }[] = [
+    { label: 'Active', value: 0 },
+    { label: 'Completed', value: 0 },
+    { label: 'Suspended', value: 0 },
+    { label: 'Defaulted', value: 0 },
   ];
 
-  const collectionsByMonth = [
-    { month: 'Jan', amount: 2.5 },
-    { month: 'Feb', amount: 2.8 },
-    { month: 'Mar', amount: 2.2 },
-    { month: 'Apr', amount: 3.1 },
-    { month: 'May', amount: 3.5 },
-    { month: 'Jun', amount: 4.2 },
-  ];
+  const collectionsByMonth: { month: string; amount: number }[] = [];
+
+  const topLoanProducts: { id: string; name: string; totalAmount: number; count: number }[] = [];
 
   return (
     <div className="space-y-6">
@@ -85,7 +70,7 @@ export default function ReportsPage() {
           subtitle="Percentage of defaulted loans"
           icon={<TrendingUp size={24} />}
           trend="down"
-          trendValue="-2%"
+          trendValue="0%"
         />
         <StatCard
           title="Interest Earned"
@@ -93,7 +78,7 @@ export default function ReportsPage() {
           subtitle="Total interest income"
           icon={<BarChart3 size={24} />}
           trend="up"
-          trendValue="+12%"
+          trendValue="0%"
         />
         <StatCard
           title="Penalties Collected"
@@ -109,18 +94,23 @@ export default function ReportsPage() {
         <div className="rounded-lg border border-border bg-card p-6">
           <h3 className="text-lg font-semibold text-foreground mb-6">Loan Status Distribution</h3>
           <div className="space-y-4">
-            {loanStatusData.map((item) => (
-              <div key={item.label} className="flex items-center gap-4">
-                <span className="w-20 text-sm font-medium text-muted-foreground">{item.label}</span>
-                <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-accent"
-                    style={{ width: `${(item.value / Math.max(...loanStatusData.map(d => d.value))) * 100}%` }}
-                  />
+            {loanStatusData.map((item) => {
+              const maxVal = Math.max(...loanStatusData.map(d => d.value));
+              const fillWidth = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+              
+              return (
+                <div key={item.label} className="flex items-center gap-4">
+                  <span className="w-20 text-sm font-medium text-muted-foreground">{item.label}</span>
+                  <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent"
+                      style={{ width: `${fillWidth}%` }}
+                    />
+                  </div>
+                  <span className="w-12 text-right text-sm font-semibold text-foreground">{item.value}</span>
                 </div>
-                <span className="w-12 text-right text-sm font-semibold text-foreground">{item.value}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -128,18 +118,22 @@ export default function ReportsPage() {
         <div className="rounded-lg border border-border bg-card p-6">
           <h3 className="text-lg font-semibold text-foreground mb-6">Monthly Collections Trend</h3>
           <div className="space-y-4">
-            {collectionsByMonth.map((item) => (
-              <div key={item.month} className="flex items-center gap-3">
-                <span className="w-12 text-sm font-medium text-muted-foreground">{item.month}</span>
-                <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-accent"
-                    style={{ width: `${(item.amount / 5) * 100}%` }}
-                  />
+            {collectionsByMonth.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No current trend data</p>
+            ) : (
+              collectionsByMonth.map((item) => (
+                <div key={item.month} className="flex items-center gap-3">
+                  <span className="w-12 text-sm font-medium text-muted-foreground">{item.month}</span>
+                  <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent"
+                      style={{ width: `${(item.amount / 5) * 100}%` }}
+                    />
+                  </div>
+                  <span className="w-12 text-right text-sm font-semibold text-foreground">₦{item.amount}M</span>
                 </div>
-                <span className="w-12 text-right text-sm font-semibold text-foreground">₦{item.amount}M</span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -147,19 +141,19 @@ export default function ReportsPage() {
       {/* Top Loan Products */}
       <div className="rounded-lg border border-border bg-card p-6">
         <h3 className="text-lg font-semibold text-foreground mb-6">Top Loan Products</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {mockData.loanProducts.map((product) => {
-            const productLoans = mockData.applications.filter(a => a.productId === product.id);
-            const totalAmount = productLoans.reduce((sum, a) => sum + a.loanAmount, 0);
-            return (
+        {topLoanProducts.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">No active products to display</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {topLoanProducts.map((product) => (
               <div key={product.id} className="rounded-lg border border-border bg-secondary/50 p-4">
                 <p className="text-sm font-semibold text-foreground">{product.name}</p>
-                <p className="mt-3 text-2xl font-bold text-accent">₦{(totalAmount / 1000000).toFixed(1)}M</p>
-                <p className="mt-1 text-xs text-muted-foreground">{productLoans.length} applications</p>
+                <p className="mt-3 text-2xl font-bold text-accent">₦{(product.totalAmount / 1000000).toFixed(1)}M</p>
+                <p className="mt-1 text-xs text-muted-foreground">{product.count} applications</p>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

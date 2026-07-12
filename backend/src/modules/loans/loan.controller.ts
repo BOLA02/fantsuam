@@ -16,4 +16,11 @@ export class LoanController {
     const result = await this.service.getLoanById(id);
     return res.status(200).json(ApiResponse.success(result, 'Loan retrieved successfully'));
   };
+
+  disburse = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const disbursedById = (req as any).user.id; // set by `authenticate` middleware
+    const result = await this.service.disburse(id, req.body, disbursedById);
+    return res.status(200).json(ApiResponse.success(result, 'Loan disbursed successfully'));
+  };
 }

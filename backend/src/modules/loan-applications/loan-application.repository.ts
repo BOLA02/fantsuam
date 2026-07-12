@@ -1,8 +1,9 @@
 // src/modules/loan-applications/loan-application.repository.ts
 
 import prisma from "../../config/prisma";
-import { ApplicationStatus } from "@prisma/client";
+
 import { ListApplicationFilters } from "./loan-application.types";
+import { ApplicationStatus, Prisma } from "@prisma/client";
 
 class LoanApplicationRepository {
   async findAll(filters: ListApplicationFilters) {
@@ -56,7 +57,7 @@ class LoanApplicationRepository {
  // src/modules/loan-applications/loan-application.repository.ts
 // UPDATED create() method only — rest of file unchanged
 
-  async create(data: {
+async create(data: {
     applicationNumber: string;
     customerId: string;
     loanProductId: string;
@@ -77,6 +78,7 @@ class LoanApplicationRepository {
         purpose: data.purpose,
         durationMonths: data.durationMonths,
         remarks: data.remarks,
+        status: ApplicationStatus.SUBMITTED,
         statusHistory: {
           create: {
             status: ApplicationStatus.SUBMITTED,
@@ -118,13 +120,16 @@ class LoanApplicationRepository {
     });
   }
 
+  
+
   async changeStatus(
     id: string,
     status: ApplicationStatus,
     changedById: string,
-    remarks?: string
+    remarks?: string,
+    client?: Prisma.TransactionClient
   ) {
-    return prisma.$transaction(async (tx) => {
+    const run = async (tx: Prisma.TransactionClient | typeof prisma) => {
       const application = await tx.loanApplication.update({
         where: { id },
         data: {
@@ -148,7 +153,13 @@ class LoanApplicationRepository {
       });
 
       return application;
-    });
+    };
+
+    if (client) {
+      return run(client);
+    }
+
+    return prisma.$transaction((tx) => run(tx));
   }
 
   async createReview(

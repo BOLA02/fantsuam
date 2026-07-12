@@ -5,11 +5,37 @@ import { BarChart3, TrendingUp, AlertCircle, DollarSign, FileText } from 'lucide
 import { StatCard } from '@/components/stat-card';
 import { DashboardMetrics } from '@/lib/api-types';
 
-interface DashboardStatsGridProps {
-  metrics: DashboardMetrics;
+interface Trend {
+  value: string;
+  direction: 'up' | 'down';
 }
 
-export function DashboardStatsGrid({ metrics }: DashboardStatsGridProps) {
+interface DashboardStatsGridProps {
+  metrics: DashboardMetrics;
+  pendingApplicationsTrend?: Trend | null;
+  approvedLoansTrend?: Trend | null;
+  todaysCollectionsTrend?: Trend | null;
+  monthlyRevenueTrend?: Trend | null;
+}
+
+/** Picks K vs M based on real magnitude so small amounts don't round to 0.0M. */
+export function formatMoney(amount: number): string {
+  if (amount >= 1_000_000) {
+    return `₦${(amount / 1_000_000).toFixed(1)}M`;
+  }
+  if (amount >= 1_000) {
+    return `₦${(amount / 1_000).toFixed(0)}K`;
+  }
+  return `₦${amount.toLocaleString()}`;
+}
+
+export function DashboardStatsGrid({
+  metrics,
+  pendingApplicationsTrend,
+  approvedLoansTrend,
+  todaysCollectionsTrend,
+  monthlyRevenueTrend,
+}: DashboardStatsGridProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <StatCard
@@ -17,48 +43,48 @@ export function DashboardStatsGrid({ metrics }: DashboardStatsGridProps) {
         value={metrics.pendingApplicationsCount}
         subtitle="Awaiting review"
         icon={<FileText size={24} />}
-        trendValue="+12%"
-        trend="up"
+        {...(pendingApplicationsTrend
+          ? { trendValue: pendingApplicationsTrend.value, trend: pendingApplicationsTrend.direction }
+          : {})}
       />
       <StatCard
         title="Approved Loans"
         value={metrics.approvedLoansCount}
         subtitle="Active in system"
         icon={<TrendingUp size={24} />}
-        trendValue="+8%"
-        trend="up"
+        {...(approvedLoansTrend
+          ? { trendValue: approvedLoansTrend.value, trend: approvedLoansTrend.direction }
+          : {})}
       />
       <StatCard
         title="Outstanding Balance"
-        value={`₦${(metrics.totalOutstandingBalance / 1000000).toFixed(1)}M`}
+        value={formatMoney(metrics.totalOutstandingBalance)}
         subtitle="Total loan principal"
         icon={<DollarSign size={24} />}
-        trendValue="+5%"
-        trend="up"
       />
       <StatCard
         title="Today's Collections"
-        value={`₦${(metrics.todaysCollectionsSum / 1000).toFixed(0)}K`}
+        value={formatMoney(metrics.todaysCollectionsSum)}
         subtitle="Amount received today"
         icon={<DollarSign size={24} />}
-        trendValue="+15%"
-        trend="up"
+        {...(todaysCollectionsTrend
+          ? { trendValue: todaysCollectionsTrend.value, trend: todaysCollectionsTrend.direction }
+          : {})}
       />
       <StatCard
         title="Monthly Revenue"
-        value={`₦${(metrics.monthlyRevenueSum / 1000000).toFixed(1)}M`}
+        value={formatMoney(metrics.monthlyRevenueSum)}
         subtitle="This month's income"
         icon={<BarChart3 size={24} />}
-        trendValue="+22%"
-        trend="up"
+        {...(monthlyRevenueTrend
+          ? { trendValue: monthlyRevenueTrend.value, trend: monthlyRevenueTrend.direction }
+          : {})}
       />
       <StatCard
         title="Late Payments"
         value={metrics.latePaymentsCount}
         subtitle="Overdue accounts"
         icon={<AlertCircle size={24} />}
-        trendValue="+3%"
-        trend="down"
         className="md:col-span-2 lg:col-span-1"
       />
     </div>

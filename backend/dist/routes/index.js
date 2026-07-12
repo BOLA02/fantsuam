@@ -1,0 +1,38 @@
+"use strict";
+// src/routes/index.ts (or wherever this root router lives)
+// FULL FILE — UPDATED: added otp and resume routes
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = __importDefault(require("../modules/auth"));
+const branches_1 = __importDefault(require("../modules/branches"));
+const users_1 = __importDefault(require("../modules/users"));
+const customers_1 = __importDefault(require("../modules/customers"));
+const loan_products_1 = __importDefault(require("../modules/loan-products"));
+const loan_applications_1 = __importDefault(require("../modules/loan-applications"));
+const guarantors_1 = __importDefault(require("../modules/guarantors"));
+const documents_1 = __importDefault(require("../modules/documents"));
+const loans_1 = __importDefault(require("../modules/loans"));
+const repayments_1 = __importDefault(require("../modules/repayments"));
+const accounting_1 = __importDefault(require("../modules/accounting"));
+const notifications_1 = __importDefault(require("../modules/notifications"));
+const otp_1 = __importDefault(require("../modules/otp"));
+const resume_1 = __importDefault(require("../modules/resume"));
+const router = (0, express_1.Router)();
+router.use("/auth", auth_1.default);
+router.use("/branches", branches_1.default);
+router.use("/users", users_1.default);
+router.use("/customers", customers_1.default);
+router.use('/loan-products', loan_products_1.default);
+router.use("/loan-applications", loan_applications_1.default);
+router.use("/guarantors", guarantors_1.default);
+router.use("/documents", documents_1.default);
+router.use("/loans", loans_1.default);
+router.use("/repayments", repayments_1.default);
+router.use("/ledger", accounting_1.default);
+router.use("/sms", notifications_1.default);
+router.use("/otp", otp_1.default);
+router.use("/resume", resume_1.default);
+exports.default = router;

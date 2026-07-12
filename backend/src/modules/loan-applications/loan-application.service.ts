@@ -4,6 +4,8 @@ import prisma from "../../config/prisma";
 import { ApplicationStatus, UserRole } from "@prisma/client";
 import { AppError } from "../../utils/AppError";
 import loanApplicationRepository from "./loan-application.repository";
+import { NotificationService } from '../notifications/notification.service';
+import { LoanService } from "../loans/loan.service";
 import {
   CreateLoanApplicationInput,
   UpdateLoanApplicationInput,
@@ -26,8 +28,10 @@ const STATUS_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
   REJECTED: [],
   CANCELLED: [],
 };
-
+const notifications = new NotificationService();
 class LoanApplicationService {
+  private loanService = new LoanService();
+  
   private async generateApplicationNumber(): Promise<string> {
     const datePart = new Date()
       .toISOString()
@@ -130,9 +134,9 @@ class LoanApplicationService {
       }
     }
 
-    const applicationNumber = await this.generateApplicationNumber();
+const applicationNumber = await this.generateApplicationNumber();
 
-    return loanApplicationRepository.create({
+    const application = await loanApplicationRepository.create({
       applicationNumber,
       customerId: data.customerId,
       loanProductId: data.loanProductId,
@@ -143,6 +147,21 @@ class LoanApplicationService {
       remarks: data.remarks,
       createdById,
     });
+
+    if (customer.phone) {
+      await notifications.sendSms({
+        customerId: customer.id,
+        phone: customer.phone,
+        templateCode: 'APPLICATION_SUBMITTED',
+        variables: {
+          firstName: customer.firstName,
+          applicationNumber,
+          amount: Number(data.requestedAmount),
+        },
+      });
+    }
+
+    return application;
   }
 
   async update(id: string, data: UpdateLoanApplicationInput) {
@@ -215,7 +234,7 @@ class LoanApplicationService {
 // src/modules/loan-applications/loan-application.service.ts
 // UPDATED — changeStatus() now enforces requiresGuarantor. Rest of file unchanged.
 
-  async changeStatus(
+   async changeStatus(
     id: string,
     newStatus: ApplicationStatus,
     changedById: string,
@@ -246,6 +265,24 @@ class LoanApplicationService {
           "This loan product requires at least one guarantor before review"
         );
       }
+    }
+
+    // APPROVED also creates the Loan. Both writes share one transaction so
+    // the application can never end up APPROVED without a matching Loan.
+    if (newStatus === ApplicationStatus.APPROVED) {
+      return prisma.$transaction(async (tx) => {
+        const updatedApplication = await loanApplicationRepository.changeStatus(
+          id,
+          newStatus,
+          changedById,
+          remarks,
+          tx
+        );
+
+        await this.loanService.createFromApplication(updatedApplication, changedById, tx);
+
+        return updatedApplication;
+      });
     }
 
     return loanApplicationRepository.changeStatus(

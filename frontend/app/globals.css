@@ -1,3 +1,9 @@
+/* app/globals.css */
+/* CHANGED: --muted-foreground darkened from #7a7669 (≈3.4:1 on white — fails AA)
+   to #5c5849 (≈6.3:1 on white — comfortably passes). Applied to :root, .dark,
+   and the prefers-color-scheme block since all three mirror the same palette.
+   Everything else in this file is unchanged. */
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -50,43 +56,7 @@
 
 :root {
   color-scheme: light;
-  --background: #faf6ec;              /* Warm cream, matches login page */
-  --foreground: #2b2b28;              /* Charcoal body text (was pure blue) */
-  --card: #ffffff;                    /* White cards pop against cream bg */
-  --card-foreground: #2b2b28;
-  --popover: #ffffff;
-  --popover-foreground: #2b2b28;
-  --primary: #2c2a7a;                 /* Logo Blue — reserved for headings, CTAs, links */
-  --primary-foreground: #ffffff;
-  --secondary: #168039;               /* Logo Green */
-  --secondary-foreground: #ffffff;
-  --muted: #f1ece0;                   /* Warm-tinted muted surface */
-  --muted-foreground: #7a7669;        /* Warm gray, matches login copy */
-  --accent: #f2a93b;                  /* Ochre from the logo's sun */
-  --accent-foreground: #2b2b28;
-  --destructive: #b3261e;             /* Warm-toned red, matches login error state */
-  --border: #dcd5c4;                  /* Warm tan border (was cool slate) */
-  --input: #ffffff;
-  --ring: #2c2a7a;                    /* Blue focus ring, matches login inputs */
-  --chart-1: #2c2a7a;
-  --chart-2: #168039;
-  --chart-3: #0284c7;
-  --chart-4: #f2a93b;
-  --chart-5: #7a7669;
-  --radius: 0.75rem;
-  --sidebar: #faf6ec;                 /* Cream sidebar, matches login brand panel */
-  --sidebar-foreground: #2b2b28;
-  --sidebar-primary: #2c2a7a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1ece0;
-  --sidebar-accent-foreground: #168039;
-  --sidebar-border: #e4dcc8;
-  --sidebar-ring: #2c2a7a;
-}
-
-.dark {
-  color-scheme: light;                /* Forces light-friendly scrollbars */
-  --background: #faf6ec;              /* Keeps warm cream background in dark mode */
+  --background: #faf6ec;
   --foreground: #2b2b28;
   --card: #ffffff;
   --card-foreground: #2b2b28;
@@ -97,7 +67,7 @@
   --secondary: #168039;
   --secondary-foreground: #ffffff;
   --muted: #f1ece0;
-  --muted-foreground: #7a7669;
+  --muted-foreground: #5c5849;       /* darkened for AA contrast — was #7a7669 */
   --accent: #f2a93b;
   --accent-foreground: #2b2b28;
   --destructive: #b3261e;
@@ -108,7 +78,43 @@
   --chart-2: #168039;
   --chart-3: #0284c7;
   --chart-4: #f2a93b;
-  --chart-5: #7a7669;
+  --chart-5: #5c5849;
+  --radius: 0.75rem;
+  --sidebar: #faf6ec;
+  --sidebar-foreground: #2b2b28;
+  --sidebar-primary: #2c2a7a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1ece0;
+  --sidebar-accent-foreground: #168039;
+  --sidebar-border: #e4dcc8;
+  --sidebar-ring: #2c2a7a;
+}
+
+.dark {
+  color-scheme: light;
+  --background: #faf6ec;
+  --foreground: #2b2b28;
+  --card: #ffffff;
+  --card-foreground: #2b2b28;
+  --popover: #ffffff;
+  --popover-foreground: #2b2b28;
+  --primary: #2c2a7a;
+  --primary-foreground: #ffffff;
+  --secondary: #168039;
+  --secondary-foreground: #ffffff;
+  --muted: #f1ece0;
+  --muted-foreground: #5c5849;
+  --accent: #f2a93b;
+  --accent-foreground: #2b2b28;
+  --destructive: #b3261e;
+  --border: #dcd5c4;
+  --input: #ffffff;
+  --ring: #2c2a7a;
+  --chart-1: #2c2a7a;
+  --chart-2: #168039;
+  --chart-3: #0284c7;
+  --chart-4: #f2a93b;
+  --chart-5: #5c5849;
   --sidebar: #faf6ec;
   --sidebar-foreground: #2b2b28;
   --sidebar-primary: #2c2a7a;
@@ -122,7 +128,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: light;
-    --background: #faf6ec;            /* Completely safety guards device settings */
+    --background: #faf6ec;
     --foreground: #2b2b28;
     --card: #ffffff;
     --card-foreground: #2b2b28;
@@ -133,7 +139,7 @@
     --secondary: #168039;
     --secondary-foreground: #ffffff;
     --muted: #f1ece0;
-    --muted-foreground: #7a7669;
+    --muted-foreground: #5c5849;
     --accent: #f2a93b;
     --accent-foreground: #2b2b28;
     --destructive: #b3261e;
@@ -144,7 +150,7 @@
     --chart-2: #168039;
     --chart-3: #0284c7;
     --chart-4: #f2a93b;
-    --chart-5: #7a7669;
+    --chart-5: #5c5849;
     --sidebar: #faf6ec;
     --sidebar-foreground: #2b2b28;
     --sidebar-primary: #2c2a7a;

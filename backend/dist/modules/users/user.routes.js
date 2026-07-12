@@ -1,0 +1,23 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const user_controller_1 = __importDefault(require("./user.controller"));
+const auth_middleware_1 = require("../../middleware/auth.middleware");
+const role_middleware_1 = require("../../middleware/role.middleware");
+const validate_middleware_1 = require("../../middleware/validate.middleware");
+const user_validation_1 = require("./user.validation");
+const client_1 = require("@prisma/client");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authenticate);
+router.get("/", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN, client_1.UserRole.MANAGER), user_controller_1.default.getAll);
+router.patch("/change-password", (0, validate_middleware_1.validate)(user_validation_1.changePasswordSchema), user_controller_1.default.changePassword);
+router.post("/", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN), (0, validate_middleware_1.validate)(user_validation_1.createUserSchema), user_controller_1.default.create);
+router.get("/:id", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN, client_1.UserRole.MANAGER), user_controller_1.default.getById);
+router.patch("/:id", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN), (0, validate_middleware_1.validate)(user_validation_1.updateUserSchema), user_controller_1.default.update);
+router.patch("/:id/reset-password", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN), (0, validate_middleware_1.validate)(user_validation_1.resetPasswordSchema), user_controller_1.default.resetPassword);
+router.patch("/:id/status", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN), user_controller_1.default.changeStatus);
+router.delete("/:id", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN), user_controller_1.default.delete);
+exports.default = router;

@@ -1,3 +1,6 @@
+// src/routes/index.ts (or wherever this root router lives)
+// FULL FILE — UPDATED: added otp and resume routes
+
 import { Router } from "express";
 
 import authRoutes from "../modules/auth";
@@ -9,6 +12,11 @@ import loanApplicationRoutes from "../modules/loan-applications";
 import guarantorRoutes from "../modules/guarantors";
 import documentRoutes from "../modules/documents";
 import loanRoutes from "../modules/loans";
+import repaymentRoute from "../modules/repayments";
+import ledgerRoutes from "../modules/accounting";
+import sms from "../modules/notifications";
+import otpRoutes from "../modules/otp";
+import resumeRoutes from "../modules/resume";
 
 const router = Router();
 
@@ -21,5 +29,10 @@ router.use("/loan-applications", loanApplicationRoutes);
 router.use("/guarantors", guarantorRoutes);
 router.use("/documents", documentRoutes);
 router.use("/loans", loanRoutes);
+router.use("/repayments", repaymentRoute);
+router.use("/ledger", ledgerRoutes);
+router.use("/sms", sms);
+router.use("/otp", otpRoutes);
+router.use("/resume", resumeRoutes);
 
 export default router;

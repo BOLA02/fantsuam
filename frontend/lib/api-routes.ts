@@ -10,7 +10,12 @@ import {
   LoanApplication,
   Guarantor,
   DocumentRecord,
-  Loan
+  Loan,
+  Repayment,
+  LedgerEntry,
+  SmsLog,
+  SmsTemplateOption
+
 } from './api-types';
 
 export const api = {
@@ -192,13 +197,127 @@ loanApplications: {
     },
   },
 
-  loans: {
+ loans: {
     getAll: async (params?: { search?: string }) => {
       const query = params?.search ? `?search=${encodeURIComponent(params.search)}` : '';
       return apiClient<ApiResponse<Loan[]>>(`/loans${query}`);
     },
     getById: async (id: string) => {
       return apiClient<ApiResponse<Loan>>(`/loans/${id}`);
+    },
+    disburse: async (
+      id: string,
+      payload: {
+        amount: number;
+        paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
+        accountName?: string;
+        accountNumber?: string;
+        bankName?: string;
+        remarks?: string;
+      }
+    ) => {
+      return apiClient<ApiResponse<Loan>>(`/loans/${id}/disburse`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+    },
+  },
+
+  repayments: {
+    getAll: async (params?: { search?: string; status?: string; loanId?: string }) => {
+      const query = params
+        ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString()
+        : '';
+      return apiClient<ApiResponse<Repayment[]>>(`/repayments${query}`);
+    },
+    getLedger: async (loanId: string) => {
+      return apiClient<ApiResponse<Repayment[]>>(`/repayments/ledger/${loanId}`);
+    },
+    recordCash: async (payload: { loanId: string; amount: number; paymentReference?: string; remarks?: string }) => {
+      return apiClient<ApiResponse<Repayment[]>>('/repayments/cash', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    reportBankTransfer: async (payload: {
+      loanId: string;
+      amount: number;
+      paymentReference?: string;
+      remarks?: string;
+    }) => {
+      return apiClient<ApiResponse<Repayment>>('/repayments/bank-transfer', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    confirm: async (id: string) => {
+      return apiClient<ApiResponse<Repayment>>(`/repayments/${id}/confirm`, {
+        method: 'PATCH',
+      });
+    },
+  },
+
+
+  ledger: {
+    getAll: async (params?: { search?: string; loanId?: string; page?: number; pageSize?: number }) => {
+      const query = params
+        ? '?' +
+          new URLSearchParams(
+            Object.entries(params)
+              .filter(([, v]) => v !== undefined && v !== '')
+              .map(([k, v]) => [k, String(v)])
+          ).toString()
+        : '';
+      return apiClient<ApiResponse<LedgerEntry[]>>(`/ledger${query}`);
+    },
+    getForLoan: async (loanId: string) => {
+      return apiClient<ApiResponse<LedgerEntry[]>>(`/ledger/${loanId}`);
+    },
+  },
+
+ sms: {
+    getAll: async (params?: { search?: string; status?: string; page?: number; pageSize?: number }) => {
+      const query = params
+        ? '?' +
+          new URLSearchParams(
+            Object.entries(params)
+              .filter(([, v]) => v !== undefined && v !== '')
+              .map(([k, v]) => [k, String(v)])
+          ).toString()
+        : '';
+      return apiClient<ApiResponse<SmsLog[]>>(`/sms${query}`);
+    },
+    send: async (payload: { customerId?: string; phone: string; templateCode: string; variables?: Record<string, string | number> }) => {
+      return apiClient<ApiResponse<null>>('/sms/send', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    getTemplates: async () => {
+      return apiClient<ApiResponse<SmsTemplateOption[]>>('/sms/templates');
+    },
+  },
+
+// lib/api.ts — REPLACE only the otp/resume block at the bottom, rest of file unchanged
+
+  otp: {
+    request: async (phone: string) => {
+      return apiClient<ApiResponse<{ message: string }>>('/otp/request', {
+        method: 'POST',
+        body: JSON.stringify({ phone }),
+      });
+    },
+    verify: async (phone: string, code: string) => {
+      return apiClient<ApiResponse<{ resumeToken: string; expiresInMinutes: number }>>('/otp/verify', {
+        method: 'POST',
+        body: JSON.stringify({ phone, code }),
+      });
+    },
+  },
+
+  resume: {
+    get: async (token: string) => {
+      return apiClient<ApiResponse<any>>(`/resume?token=${encodeURIComponent(token)}`);
     },
   },
 };

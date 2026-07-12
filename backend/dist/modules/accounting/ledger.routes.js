@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const ledger_controller_1 = require("./ledger.controller");
+const validate_middleware_1 = require("../../middleware/validate.middleware");
+const auth_middleware_1 = require("../../middleware/auth.middleware");
+const asyncHandler_1 = require("../../utils/asyncHandler");
+const ledger_validation_1 = require("./ledger.validation");
+const router = (0, express_1.Router)();
+const controller = new ledger_controller_1.LedgerController();
+router.use(auth_middleware_1.authenticate);
+router.get('/', (0, validate_middleware_1.validate)(ledger_validation_1.listLedgerSchema), (0, asyncHandler_1.asyncHandler)(controller.getAll));
+router.get('/:loanId', (0, validate_middleware_1.validate)(ledger_validation_1.loanLedgerParamSchema), (0, asyncHandler_1.asyncHandler)(controller.getForLoan));
+exports.default = router;
