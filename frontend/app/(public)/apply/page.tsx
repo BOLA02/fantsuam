@@ -1,6 +1,8 @@
-// app/apply/page.tsx
+// app/(public)/apply/page.tsx
 // FULL FILE — sidebar removed (horizontal top stepper), semantic tokens restored
-// everywhere. Mobile-responsive pass added. All handlers/logic unchanged.
+// everywhere. Added client-side required-field validation to submitStep1 and
+// submitStep3 (submitStep2 already had this) so people see exactly what's
+// missing instead of a generic "validation failed" error from the API.
 
 'use client';
 
@@ -32,6 +34,42 @@ const STEPS: { id: Step; label: string; description: string }[] = [
   { id: 4, label: 'Documents', description: 'Verification' },
   { id: 5, label: 'Review', description: 'Confirm & submit' },
 ];
+
+// Field lists for missing-field validation. Keep these in sync with the
+// required inputs actually rendered in Step1PersonalInfo / Step3Guarantor.
+const STEP1_REQUIRED: { field: keyof ApplyFormData; label: string }[] = [
+  { field: 'firstName', label: 'First Name' },
+  { field: 'lastName', label: 'Last Name' },
+  { field: 'gender', label: 'Gender' },
+  { field: 'dateOfBirth', label: 'Date of Birth' },
+  { field: 'phone', label: 'Phone' },
+  { field: 'addressLine1', label: 'Address Line 1' },
+  { field: 'state', label: 'State' },
+  { field: 'city', label: 'LGA' },
+  { field: 'occupation', label: 'Occupation' },
+  { field: 'employer', label: 'Employer' },
+  { field: 'monthlyIncome', label: 'Monthly Income' },
+];
+
+const STEP3_REQUIRED: { field: keyof ApplyFormData; label: string }[] = [
+  { field: 'guarantorName', label: 'Full Name' },
+  { field: 'guarantorRelationship', label: 'Relationship' },
+  { field: 'guarantorPhone', label: 'Phone Number' },
+];
+
+function getMissingFields(
+  formData: ApplyFormData,
+  required: { field: keyof ApplyFormData; label: string }[]
+): string[] {
+  return required
+    .filter(({ field }) => !String(formData[field] ?? '').trim())
+    .map(({ label }) => label);
+}
+
+function missingFieldsMessage(missing: string[]): string {
+  if (missing.length === 1) return `Please fill in: ${missing[0]}.`;
+  return `Please fill in the following: ${missing.join(', ')}.`;
+}
 
 export default function ApplyPage() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -166,6 +204,17 @@ export default function ApplyPage() {
 
   const submitStep1 = async () => {
     setError(null);
+
+    const missing = getMissingFields(formData, STEP1_REQUIRED);
+    if (missing.length > 0) {
+      setError(missingFieldsMessage(missing));
+      return;
+    }
+    if (Number(formData.monthlyIncome) <= 0 || isNaN(Number(formData.monthlyIncome))) {
+      setError('Please enter a valid Monthly Income.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await api.customers.create({
@@ -259,6 +308,12 @@ export default function ApplyPage() {
   const submitStep3 = async () => {
     if (!formData.customerId) {
       setError('Missing customer reference. Please restart the application.');
+      return;
+    }
+
+    const missing = getMissingFields(formData, STEP3_REQUIRED);
+    if (missing.length > 0) {
+      setError(missingFieldsMessage(missing));
       return;
     }
 
