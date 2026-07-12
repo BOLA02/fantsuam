@@ -1,6 +1,6 @@
 // app/apply/page.tsx
 // FULL FILE — sidebar removed (horizontal top stepper), semantic tokens restored
-// everywhere. All handlers/logic unchanged.
+// everywhere. Mobile-responsive pass added. All handlers/logic unchanged.
 
 'use client';
 
@@ -309,38 +309,44 @@ export default function ApplyPage() {
   }
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
       {showOtpModal && (
         <ResumeOtpModal onVerified={handleOtpVerified} onClose={() => setShowOtpModal(false)} />
       )}
 
-      <header className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3 lg:px-8 lg:py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="relative h-8 w-8 shrink-0">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3 lg:px-8 lg:py-4">
+        <Link href="/" className="flex min-w-0 items-center gap-2">
+          <div className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
             <Image src="/logo.png" alt="MicroFinance logo" fill className="object-contain" priority />
           </div>
-          <span className="text-sm font-semibold text-foreground">MicroFinance</span>
+          <span className="truncate text-sm font-semibold text-foreground">MicroFinance</span>
         </Link>
-        <div className="hidden text-center sm:block">
-          <h1 className="text-base font-semibold">{STEPS[currentStep - 1].label}</h1>
-          <p className="text-xs text-muted-foreground">{STEPS[currentStep - 1].description}</p>
+        <div className="hidden min-w-0 text-center sm:block">
+          <h1 className="truncate text-base font-semibold">{STEPS[currentStep - 1].label}</h1>
+          <p className="truncate text-xs text-muted-foreground">{STEPS[currentStep - 1].description}</p>
         </div>
-        <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+        <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground sm:px-3 sm:text-xs">
           Step {currentStep} of {STEPS.length}
         </span>
       </header>
 
+      {/* Mobile-only title (shown when header title is hidden below sm) */}
+      <div className="shrink-0 border-b border-border bg-card px-3 pt-2 text-center sm:hidden">
+        <h1 className="text-sm font-semibold">{STEPS[currentStep - 1].label}</h1>
+        <p className="text-[11px] text-muted-foreground">{STEPS[currentStep - 1].description}</p>
+      </div>
+
       {/* Horizontal stepper — replaces sidebar */}
-      <div className="shrink-0 border-b border-border bg-card px-4 py-4 lg:px-10">
-        <div className="mx-auto flex max-w-3xl items-center">
+      <div className="shrink-0 overflow-x-auto border-b border-border bg-card px-3 py-3 sm:px-4 sm:py-4 lg:px-10">
+        <div className="mx-auto flex max-w-3xl min-w-[320px] items-center">
           {STEPS.map((step, idx) => {
             const isActive = step.id === currentStep;
             const isComplete = step.id < currentStep;
             return (
               <div key={step.id} className={`flex items-center ${idx < STEPS.length - 1 ? 'flex-1' : ''}`}>
-                <div className="flex flex-col items-center gap-1.5">
+                <div className="flex flex-col items-center gap-1 sm:gap-1.5">
                   <div
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold sm:h-7 sm:w-7 sm:text-xs ${
                       isComplete
                         ? 'bg-secondary text-secondary-foreground'
                         : isActive
@@ -348,10 +354,10 @@ export default function ApplyPage() {
                         : 'bg-muted text-muted-foreground ring-1 ring-border'
                     }`}
                   >
-                    {isComplete ? <CheckCircle2 size={14} /> : step.id}
+                    {isComplete ? <CheckCircle2 size={13} /> : step.id}
                   </div>
                   <p
-                    className={`hidden text-center text-[11px] font-medium leading-tight sm:block ${
+                    className={`hidden text-center text-[10px] font-medium leading-tight sm:block sm:text-[11px] ${
                       isActive ? 'text-foreground' : 'text-muted-foreground'
                     }`}
                   >
@@ -359,7 +365,7 @@ export default function ApplyPage() {
                   </p>
                 </div>
                 {idx < STEPS.length - 1 && (
-                  <div className={`mx-2 h-px flex-1 ${isComplete ? 'bg-secondary' : 'bg-border'}`} />
+                  <div className={`mx-1.5 h-px flex-1 sm:mx-2 ${isComplete ? 'bg-secondary' : 'bg-border'}`} />
                 )}
               </div>
             );
@@ -367,7 +373,7 @@ export default function ApplyPage() {
         </div>
       </div>
 
-      <main className="flex-1 overflow-y-auto px-4 py-5 lg:px-10 lg:py-8">
+      <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-10 lg:py-8">
         <div className="mx-auto flex h-full max-w-3xl flex-col">
           {showResumeBanner && (
             <ResumeBanner
@@ -389,7 +395,7 @@ export default function ApplyPage() {
             </div>
           )}
 
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:p-7">
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5 lg:p-7">
             {currentStep === 1 && (
               <>
                 <Step1PersonalInfo formData={formData} onChange={handleChange} />
@@ -435,34 +441,44 @@ export default function ApplyPage() {
         </div>
       </main>
 
-      <footer className="shrink-0 border-t border-border bg-card px-4 py-3 lg:px-10 lg:py-4">
-        <div className="mx-auto flex max-w-3xl justify-between gap-3">
-          <Button variant="outline" size="sm" onClick={handlePrev} disabled={currentStep === 1 || submitting} className="gap-2">
-            <ArrowLeft size={15} /> Back
+      <footer className="shrink-0 border-t border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3 lg:px-10 lg:py-4">
+        <div className="mx-auto flex max-w-3xl justify-between gap-2 sm:gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrev}
+            disabled={currentStep === 1 || submitting}
+            className="gap-1.5 px-3 sm:gap-2 sm:px-4"
+          >
+            <ArrowLeft size={15} /> <span className="hidden xs:inline sm:inline">Back</span>
           </Button>
 
           {currentStep === 1 && (
-            <Button size="sm" onClick={submitStep1} disabled={submitting} className="gap-2">
+            <Button size="sm" onClick={submitStep1} disabled={submitting} className="gap-1.5 px-3 sm:gap-2 sm:px-4">
               {submitting && <Loader2 size={15} className="animate-spin" />} Next <ArrowRight size={15} />
             </Button>
           )}
           {currentStep === 2 && (
-            <Button size="sm" onClick={submitStep2} disabled={submitting} className="gap-2">
+            <Button size="sm" onClick={submitStep2} disabled={submitting} className="gap-1.5 px-3 sm:gap-2 sm:px-4">
               {submitting && <Loader2 size={15} className="animate-spin" />} Next <ArrowRight size={15} />
             </Button>
           )}
           {currentStep === 3 && (
-            <Button size="sm" onClick={submitStep3} disabled={submitting} className="gap-2">
+            <Button size="sm" onClick={submitStep3} disabled={submitting} className="gap-1.5 px-3 sm:gap-2 sm:px-4">
               {submitting && <Loader2 size={15} className="animate-spin" />} Next <ArrowRight size={15} />
             </Button>
           )}
           {currentStep === 4 && (
-            <Button size="sm" onClick={() => setCurrentStep(5)} className="gap-2">
+            <Button size="sm" onClick={() => setCurrentStep(5)} className="gap-1.5 px-3 sm:gap-2 sm:px-4">
               Next <ArrowRight size={15} />
             </Button>
           )}
           {currentStep === 5 && (
-            <Button size="sm" onClick={handleFinish} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <Button
+              size="sm"
+              onClick={handleFinish}
+              className="gap-1.5 bg-secondary px-3 text-secondary-foreground hover:bg-secondary/90 sm:gap-2 sm:px-4"
+            >
               <CheckCircle2 size={15} /> Finish
             </Button>
           )}

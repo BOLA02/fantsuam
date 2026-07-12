@@ -56,7 +56,7 @@ export const initialFormData: ApplyFormData = {
   addressLine2: '',
   city: '',
   state: '',
-  country: '',
+  country: 'Nigeria',
   postalCode: '',
   occupation: '',
   employer: '',

@@ -1,14 +1,16 @@
 // components/apply/step1-personal-info.tsx
-// FULL FILE — semantic tokens restored (headings get your serif/navy style back
-// from globals.css automatically). Same props/behavior.
+// FULL FILE — State/Occupation are dropdowns; City repurposed as an LGA
+// dropdown cascading from State; Country fixed to Nigeria (not user-edited).
 
 'use client';
 
+import { useState } from 'react';
 import { User, Mail, Phone, Calendar, MapPin, Home, Building2, IdCard, Briefcase, Wallet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ApplyFormData } from './apply-types';
 import { SectionHeader } from './section-header';
+import { NIGERIA_STATE_OPTIONS, OCCUPATION_OPTIONS, getLgaOptions } from '@/lib/nigeria-data';
 
 interface Props {
   formData: ApplyFormData;
@@ -26,7 +28,40 @@ function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; childre
   );
 }
 
+const OCCUPATION_PRESET_VALUES = new Set(OCCUPATION_OPTIONS.map((o) => o.value).filter((v) => v !== 'Other'));
+
 export function Step1PersonalInfo({ formData, onChange }: Props) {
+  const [otherSelected, setOtherSelected] = useState(
+    () => !!formData.occupation && !OCCUPATION_PRESET_VALUES.has(formData.occupation)
+  );
+
+  const occupationSelectValue = otherSelected
+    ? 'Other'
+    : OCCUPATION_PRESET_VALUES.has(formData.occupation)
+    ? formData.occupation
+    : '';
+
+  function handleOccupationSelect(value: string | null) {
+    const v = value ?? '';
+    if (v === 'Other') {
+      setOtherSelected(true);
+      onChange('occupation', '');
+    } else {
+      setOtherSelected(false);
+      onChange('occupation', v);
+    }
+  }
+
+  function handleStateSelect(value: string | null) {
+    const v = value ?? '';
+    onChange('state', v);
+    // A previously-selected LGA may not belong to the new state — clear it
+    // rather than silently leaving a mismatched value behind.
+    onChange('city', '');
+  }
+
+  const lgaOptions = getLgaOptions(formData.state);
+
   return (
     <div className="space-y-5">
       <div className="hidden lg:block">
@@ -101,16 +136,42 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
           </div>
           <div className="grid gap-3 sm:grid-cols-4">
             <div>
-              <FieldLabel icon={MapPin}>City</FieldLabel>
-              <Input value={formData.city} onChange={(e) => onChange('city', e.target.value)} placeholder="City" className={inputClass} />
+              <FieldLabel icon={MapPin}>State</FieldLabel>
+              <Select value={formData.state} onValueChange={handleStateSelect}>
+                <SelectTrigger className={inputClass}>
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NIGERIA_STATE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <FieldLabel icon={MapPin}>State</FieldLabel>
-              <Input value={formData.state} onChange={(e) => onChange('state', e.target.value)} placeholder="State" className={inputClass} />
+              <FieldLabel icon={MapPin}>LGA</FieldLabel>
+              <Select
+                value={formData.city}
+                onValueChange={(value) => onChange('city', value ?? '')}
+                disabled={!formData.state}
+              >
+                <SelectTrigger className={inputClass}>
+                  <SelectValue placeholder={formData.state ? 'Select LGA' : 'Select a state first'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {lgaOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <FieldLabel icon={MapPin}>Country</FieldLabel>
-              <Input value={formData.country} onChange={(e) => onChange('country', e.target.value)} placeholder="Country" className={inputClass} />
+              <Input value="Nigeria" disabled className={`${inputClass} bg-muted text-muted-foreground`} />
             </div>
             <div>
               <FieldLabel icon={MapPin}>Postal Code</FieldLabel>
@@ -140,7 +201,26 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <FieldLabel icon={Briefcase}>Occupation</FieldLabel>
-              <Input value={formData.occupation} onChange={(e) => onChange('occupation', e.target.value)} placeholder="Your occupation" className={inputClass} />
+              <Select value={occupationSelectValue} onValueChange={handleOccupationSelect}>
+                <SelectTrigger className={inputClass}>
+                  <SelectValue placeholder="Select occupation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {OCCUPATION_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {otherSelected && (
+                <Input
+                  value={formData.occupation}
+                  onChange={(e) => onChange('occupation', e.target.value)}
+                  placeholder="Please specify your occupation"
+                  className={`${inputClass} mt-2`}
+                />
+              )}
             </div>
             <div>
               <FieldLabel icon={Building2}>Employer</FieldLabel>

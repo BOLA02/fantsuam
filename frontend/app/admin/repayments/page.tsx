@@ -1,43 +1,53 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { RotateCw, Download, Plus, X, Check } from 'lucide-react';
+import { RotateCw, Download, Plus, X, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { DataTable, Column } from '@/components/data-table';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input, FormField } from '@/components/form';
 import { api } from '@/lib/api-routes';
 import { Repayment, Loan } from '@/lib/api-types';
 
-interface RepaymentRow {
-  id: string;
+interface GroupedPayment {
+  transactionGroupId: string;
   customerName: string;
   loanNumber: string;
-  amount: number;
-  interestApplied: number;
-  principalApplied: number;
+  totalAmount: number;
   method: string;
   paymentDate: string;
-  receiptNumber: string;
   officer: string;
-  status: string;
+  status: string; // CONFIRMED only if every split in the group is confirmed
+  splits: Repayment[];
 }
 
-function toRow(rep: Repayment): RepaymentRow {
-  return {
-    id: rep.id,
-    customerName: rep.loan?.customer ? `${rep.loan.customer.firstName} ${rep.loan.customer.lastName}` : '—',
-    loanNumber: rep.loan?.loanNumber ?? '—',
-    amount: rep.amount,
-    interestApplied: rep.interestApplied,
-    principalApplied: rep.principalApplied,
-    method: rep.paymentMethod,
-    paymentDate: new Date(rep.paymentDate).toLocaleDateString(),
-    receiptNumber: rep.receiptNumber,
-    officer: rep.receivedBy ? `${rep.receivedBy.firstName} ${rep.receivedBy.lastName}` : '—',
-    status: rep.confirmationStatus,
-  };
+function groupByPayment(repayments: Repayment[]): GroupedPayment[] {
+  const groups = new Map<string, Repayment[]>();
+  for (const r of repayments) {
+    const list = groups.get(r.transactionGroupId) ?? [];
+    list.push(r);
+    groups.set(r.transactionGroupId, list);
+  }
+
+  return Array.from(groups.entries())
+    .map(([transactionGroupId, splits]) => {
+      const first = splits[0];
+      const allConfirmed = splits.every((s) => s.confirmationStatus === 'CONFIRMED');
+      return {
+        transactionGroupId,
+        customerName: first.loan?.customer
+          ? `${first.loan.customer.firstName} ${first.loan.customer.lastName}`
+          : '—',
+        loanNumber: first.loan?.loanNumber ?? '—',
+        totalAmount: splits.reduce((sum, s) => sum + Number(s.amount), 0),
+        method: first.paymentMethod,
+        paymentDate: first.paymentDate,
+        officer: first.receivedBy ? `${first.receivedBy.firstName} ${first.receivedBy.lastName}` : '—',
+        status: allConfirmed ? 'CONFIRMED' : 'PENDING_VERIFICATION',
+        splits,
+      };
+    })
+    .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
 }
 
 type PaymentTab = 'CASH' | 'BANK_TRANSFER';
@@ -52,9 +62,10 @@ const initialPaymentForm: PaymentFormState = { amount: '', paymentReference: '',
 
 export default function RepaymentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [repayments, setRepayments] = useState<RepaymentRow[]>([]);
+  const [repayments, setRepayments] = useState<Repayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
@@ -65,7 +76,7 @@ export default function RepaymentsPage() {
   const [form, setForm] = useState<PaymentFormState>(initialPaymentForm);
   const [modalError, setModalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [confirmingGroupId, setConfirmingGroupId] = useState<string | null>(null);
 
   const fetchRepayments = useCallback(async (search?: string) => {
     try {
@@ -73,7 +84,7 @@ export default function RepaymentsPage() {
       setError(null);
       const response = await api.repayments.getAll(search ? { search } : undefined);
       if (response.success && response.data) {
-        setRepayments(response.data.map(toRow));
+        setRepayments(response.data);
       } else {
         setError(response.message || 'Failed to load repayments.');
       }
@@ -93,7 +104,6 @@ export default function RepaymentsPage() {
     return () => clearTimeout(t);
   }, [searchTerm, fetchRepayments]);
 
-  // Debounced loan search inside the modal
   useEffect(() => {
     if (!loanSearch) {
       setLoanResults([]);
@@ -160,70 +170,36 @@ export default function RepaymentsPage() {
     }
   }
 
-  async function handleConfirm(id: string) {
+  async function handleConfirmGroup(group: GroupedPayment) {
     try {
-      setConfirmingId(id);
-      await api.repayments.confirm(id);
+      setConfirmingGroupId(group.transactionGroupId);
+      // Bank transfers start as ONE pending row (confirmBankTransfer performs
+      // the waterfall split at confirm time), so a pending group always has
+      // exactly one split to confirm — but loop defensively regardless.
+      for (const split of group.splits) {
+        if (split.confirmationStatus === 'PENDING_VERIFICATION') {
+          await api.repayments.confirm(split.id);
+        }
+      }
       await fetchRepayments(searchTerm || undefined);
     } catch (err: any) {
       setError(err.message || 'Failed to confirm payment.');
     } finally {
-      setConfirmingId(null);
+      setConfirmingGroupId(null);
     }
   }
 
-  const formatCurrency = (amount: number) => `₦${amount.toLocaleString()}`;
+  function toggleExpand(groupId: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }
 
-  const columns: Column<RepaymentRow>[] = [
-    { key: 'customerName', header: 'Customer', sortable: true },
-    { key: 'loanNumber', header: 'Loan', sortable: true },
-    {
-      key: 'amount',
-      header: 'Amount',
-      sortable: true,
-      cell: (row) => <span className="font-semibold text-foreground">{formatCurrency(row.amount)}</span>,
-    },
-    {
-      key: 'interestApplied',
-      header: 'Interest',
-      sortable: true,
-      cell: (row) => formatCurrency(row.interestApplied),
-    },
-    {
-      key: 'principalApplied',
-      header: 'Principal',
-      sortable: true,
-      cell: (row) => formatCurrency(row.principalApplied),
-    },
-    { key: 'method', header: 'Method', sortable: true },
-    { key: 'paymentDate', header: 'Date', sortable: true },
-    { key: 'receiptNumber', header: 'Receipt #', sortable: true },
-    { key: 'officer', header: 'Officer', sortable: true },
-    {
-      key: 'status',
-      header: 'Status',
-      sortable: true,
-      cell: (row) => <StatusBadge status={row.status.toLowerCase()} />,
-    },
-    {
-      key: 'id',
-      header: 'Actions',
-      cell: (row) =>
-        row.status === 'PENDING_VERIFICATION' ? (
-          <Button
-            size="sm"
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => handleConfirm(row.id)}
-            disabled={confirmingId === row.id}
-          >
-            <Check size={14} className="mr-1" />
-            {confirmingId === row.id ? 'Confirming...' : 'Confirm'}
-          </Button>
-        ) : (
-          <span className="text-muted-foreground text-xs">—</span>
-        ),
-    },
-  ];
+  const formatCurrency = (amount: number) => `₦${Number(amount).toLocaleString()}`;
+  const groups = groupByPayment(repayments);
 
   return (
     <div className="space-y-6">
@@ -247,13 +223,117 @@ export default function RepaymentsPage() {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border bg-card">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         {loading ? (
           <div className="p-6 text-center text-muted-foreground">Loading repayments...</div>
         ) : error ? (
           <div className="p-6 text-center text-destructive">{error}</div>
+        ) : groups.length === 0 ? (
+          <div className="p-6 text-center text-muted-foreground">No repayments found</div>
         ) : (
-          <DataTable data={repayments} columns={columns} emptyMessage="No repayments found" />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground border-b border-border bg-secondary/30">
+                  <th className="py-3 px-4 w-8"></th>
+                  <th className="py-3 px-4">Customer</th>
+                  <th className="py-3 px-4">Loan</th>
+                  <th className="py-3 px-4">Amount</th>
+                  <th className="py-3 px-4">Method</th>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Receipt #</th>
+                  <th className="py-3 px-4">Officer</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((group) => {
+                  const isExpanded = expandedGroups.has(group.transactionGroupId);
+                  const isMultiSplit = group.splits.length > 1;
+                  return (
+                    <>
+                      <tr key={group.transactionGroupId} className="border-b border-border last:border-0">
+                        <td className="py-3 px-4">
+                          {isMultiSplit && (
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(group.transactionGroupId)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </button>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-foreground">{group.customerName}</td>
+                        <td className="py-3 px-4 text-foreground">{group.loanNumber}</td>
+                        <td className="py-3 px-4 font-semibold text-foreground">
+                          {formatCurrency(group.totalAmount)}
+                          {isMultiSplit && (
+                            <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                              ({group.splits.length} installments)
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-foreground">{group.method}</td>
+                        <td className="py-3 px-4 text-foreground">
+                          {new Date(group.paymentDate).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-xs text-foreground">
+                          {group.transactionGroupId}
+                        </td>
+                        <td className="py-3 px-4 text-foreground">{group.officer}</td>
+                        <td className="py-3 px-4">
+                          <StatusBadge status={group.status.toLowerCase()} />
+                        </td>
+                        <td className="py-3 px-4">
+                          {group.status === 'PENDING_VERIFICATION' ? (
+                            <Button
+                              size="sm"
+                              className="bg-primary hover:bg-primary/90"
+                              onClick={() => handleConfirmGroup(group)}
+                              disabled={confirmingGroupId === group.transactionGroupId}
+                            >
+                              <Check size={14} className="mr-1" />
+                              {confirmingGroupId === group.transactionGroupId ? 'Confirming...' : 'Confirm'}
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded &&
+                        group.splits.map((split) => (
+                          <tr key={split.id} className="border-b border-border last:border-0 bg-secondary/20">
+                            <td className="py-2 px-4"></td>
+                            <td className="py-2 px-4 text-xs text-muted-foreground" colSpan={2}>
+                              Installment applied
+                            </td>
+                            <td className="py-2 px-4 text-xs text-foreground">
+                              {formatCurrency(Number(split.amount))}
+                              <span className="text-muted-foreground">
+                                {' '}
+                                (int {formatCurrency(Number(split.interestApplied))} · prin{' '}
+                                {formatCurrency(Number(split.principalApplied))})
+                              </span>
+                            </td>
+                            <td className="py-2 px-4"></td>
+                            <td className="py-2 px-4"></td>
+                            <td className="py-2 px-4 font-mono text-xs text-muted-foreground">
+                              {split.receiptNumber}
+                            </td>
+                            <td className="py-2 px-4"></td>
+                            <td className="py-2 px-4">
+                              <StatusBadge status={split.confirmationStatus.toLowerCase()} />
+                            </td>
+                          </tr>
+                        ))}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -294,7 +374,7 @@ export default function RepaymentsPage() {
                             {loan.customer ? `${loan.customer.firstName} ${loan.customer.lastName}` : '—'}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {loan.loanNumber} · Outstanding: ₦{loan.outstandingBalance.toLocaleString()}
+                            {loan.loanNumber} · Outstanding: {formatCurrency(loan.outstandingBalance)}
                           </p>
                         </button>
                       ))
@@ -313,7 +393,7 @@ export default function RepaymentsPage() {
                           : '—'}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {selectedLoan.loanNumber} · Outstanding: ₦{selectedLoan.outstandingBalance.toLocaleString()}
+                        {selectedLoan.loanNumber} · Outstanding: {formatCurrency(selectedLoan.outstandingBalance)}
                       </p>
                     </div>
                     <button

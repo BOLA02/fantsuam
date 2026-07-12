@@ -1,14 +1,17 @@
 // components/apply/step3-guarantor.tsx
-// FULL FILE — semantic tokens restored. Same props/behavior.
+// FULL FILE — Guarantor Occupation converted from free-text Input to Select,
+// same OCCUPATION_OPTIONS + "Other" fallback pattern as Step 1.
 
 'use client';
 
+import { useState } from 'react';
 import { User, Phone, Users, Mail, Briefcase, Home, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ApplyFormData } from './apply-types';
 import { SectionHeader } from './section-header';
+import { OCCUPATION_OPTIONS } from '@/lib/nigeria-data';
 
 interface Props {
   formData: ApplyFormData;
@@ -26,7 +29,30 @@ function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; childre
   );
 }
 
+const OCCUPATION_PRESET_VALUES = new Set(OCCUPATION_OPTIONS.map((o) => o.value).filter((v) => v !== 'Other'));
+
 export function Step3Guarantor({ formData, onChange }: Props) {
+  const [otherSelected, setOtherSelected] = useState(
+    () => !!formData.guarantorOccupation && !OCCUPATION_PRESET_VALUES.has(formData.guarantorOccupation)
+  );
+
+  const occupationSelectValue = otherSelected
+    ? 'Other'
+    : OCCUPATION_PRESET_VALUES.has(formData.guarantorOccupation)
+    ? formData.guarantorOccupation
+    : '';
+
+  function handleOccupationSelect(value: string | null) {
+    const v = value ?? '';
+    if (v === 'Other') {
+      setOtherSelected(true);
+      onChange('guarantorOccupation', '');
+    } else {
+      setOtherSelected(false);
+      onChange('guarantorOccupation', v);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="hidden lg:block">
@@ -84,7 +110,26 @@ export function Step3Guarantor({ formData, onChange }: Props) {
         <div className="space-y-3">
           <div>
             <FieldLabel icon={Briefcase}>Occupation</FieldLabel>
-            <Input value={formData.guarantorOccupation} onChange={(e) => onChange('guarantorOccupation', e.target.value)} placeholder="Optional" className={inputClass} />
+            <Select value={occupationSelectValue} onValueChange={handleOccupationSelect}>
+              <SelectTrigger className={inputClass}>
+                <SelectValue placeholder="Select occupation" />
+              </SelectTrigger>
+              <SelectContent>
+                {OCCUPATION_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {otherSelected && (
+              <Input
+                value={formData.guarantorOccupation}
+                onChange={(e) => onChange('guarantorOccupation', e.target.value)}
+                placeholder="Please specify occupation"
+                className={`${inputClass} mt-2`}
+              />
+            )}
           </div>
           <div>
             <FieldLabel icon={Home}>Address</FieldLabel>
