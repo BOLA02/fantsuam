@@ -1,5 +1,7 @@
 // components/apply/resume-banner.tsx
-// NEW FILE
+// FULL FILE — now a fixed-position toast instead of an inline banner, so it
+// stays visible regardless of scroll position. Same onContinue/onDismiss
+// behavior as before; no auto-dismiss, since this needs an explicit choice.
 
 'use client';
 
@@ -13,22 +15,32 @@ interface Props {
 
 export function ResumeBanner({ firstName, onContinue, onDismiss }: Props) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 shrink-0">
-      <div className="flex items-center gap-2 min-w-0">
-        <RotateCcw size={16} className="text-primary shrink-0" />
-        <p className="text-sm text-foreground truncate">
+    <div
+      role="alert"
+      className="fixed inset-x-3 top-3 z-[60] mx-auto flex w-auto max-w-md animate-in fade-in-0 slide-in-from-top-4 items-start gap-3 rounded-lg border border-primary/30 bg-card px-4 py-3 shadow-lg duration-300 sm:inset-x-auto sm:right-4 sm:left-auto"
+    >
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <RotateCcw size={14} />
+      </div>
+      <div className="min-w-0 flex-1 pt-0.5">
+        <p className="text-sm text-foreground">
           {firstName ? `Welcome back, ${firstName}! ` : 'Welcome back! '}
           You have an application in progress.
         </p>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <button onClick={onContinue} className="text-sm font-medium text-primary hover:underline">
-          Continue
-        </button>
-        <button onClick={onDismiss} className="text-muted-foreground hover:text-foreground" aria-label="Dismiss">
-          <X size={16} />
+        <button
+          onClick={onContinue}
+          className="mt-1 text-sm font-medium text-primary hover:underline underline-offset-2"
+        >
+          Continue where you left off
         </button>
       </div>
+      <button
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <X size={15} />
+      </button>
     </div>
   );
 }

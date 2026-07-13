@@ -1,9 +1,6 @@
 // components/apply/step3-guarantor.tsx
-// FULL FILE — Guarantor Occupation converted from free-text Input to Select,
-// same OCCUPATION_OPTIONS + "Other" fallback pattern as Step 1.
-// Fix: added min-w-0 to grid/flex children to stop horizontal page overflow
-// on small screens (grid items default to min-width:auto and can force the
-// track — and the whole card/page — wider than the viewport).
+// FULL FILE — visual pass only. Same state/handlers as original,
+// including the min-w-0/overflow-x-hidden fixes already present.
 
 'use client';
 
@@ -21,7 +18,7 @@ interface Props {
   onChange: (field: keyof ApplyFormData, value: string) => void;
 }
 
-const inputClass = 'h-9 w-full text-sm text-foreground placeholder:text-muted-foreground/60';
+const inputClass = 'h-10 w-full text-sm text-foreground placeholder:text-muted-foreground/60';
 
 function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
@@ -57,20 +54,20 @@ export function Step3Guarantor({ formData, onChange }: Props) {
   }
 
   return (
-    <div className="w-full min-w-0 space-y-5 overflow-x-hidden">
+    <div className="w-full min-w-0 space-y-6 overflow-x-hidden">
       <div className="hidden lg:block">
-        <h2 className="text-lg font-bold">Guarantor Information</h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">We need a guarantor for your loan</p>
+        <h2 className="text-xl font-bold text-foreground">Guarantor Information</h2>
+        <p className="mt-1 text-sm text-muted-foreground">We need a guarantor for your loan</p>
       </div>
 
-      <div className="flex min-w-0 gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+      <div className="flex min-w-0 gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-3.5 py-3">
         <Info size={14} className="mt-0.5 shrink-0 text-primary" />
         <p className="min-w-0 text-xs text-foreground/80">
           Your guarantor may be contacted to confirm these details. Choose someone reachable who can vouch for your ability to repay.
         </p>
       </div>
 
-      <section>
+      <section className="min-w-0 rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={User} title="Guarantor" />
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">
           <div className="min-w-0">
@@ -94,7 +91,7 @@ export function Step3Guarantor({ formData, onChange }: Props) {
         </div>
       </section>
 
-      <section>
+      <section className="min-w-0 rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={Phone} title="Contact Details" />
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">
           <div className="min-w-0">
@@ -108,7 +105,7 @@ export function Step3Guarantor({ formData, onChange }: Props) {
         </div>
       </section>
 
-      <section>
+      <section className="min-w-0 rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={Home} title="Additional Details" hint="Optional" />
         <div className="min-w-0 space-y-3">
           <div className="min-w-0">
@@ -140,7 +137,7 @@ export function Step3Guarantor({ formData, onChange }: Props) {
               value={formData.guarantorAddress}
               onChange={(e) => onChange('guarantorAddress', e.target.value)}
               placeholder="Enter guarantor's address"
-              className="w-full resize-none text-sm text-foreground placeholder:text-muted-foreground/60"
+              className="w-full resize-none border-input bg-background text-sm text-foreground placeholder:text-muted-foreground/60"
               rows={3}
             />
           </div>

@@ -1,5 +1,5 @@
 // components/apply/step2-loan-details.tsx
-// FULL FILE — semantic tokens restored. Same props/behavior.
+// FULL FILE — visual pass only. Same props/behavior as original.
 
 'use client';
 
@@ -18,7 +18,7 @@ interface Props {
   productsError: string | null;
 }
 
-const inputClass = 'h-9 text-sm text-foreground placeholder:text-muted-foreground/60';
+const inputClass = 'h-10 text-sm text-foreground placeholder:text-muted-foreground/60';
 
 function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
@@ -42,19 +42,19 @@ export function Step2LoanDetails({ formData, onChange, products, productsLoading
     !!selectedProduct && !!formData.durationMonths && duration > selectedProduct.maximumDuration;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="hidden lg:block">
-        <h2 className="text-lg font-bold">Loan Details</h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">Tell us about the loan you need</p>
+        <h2 className="text-xl font-bold text-foreground">Loan Details</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Tell us about the loan you need</p>
       </div>
 
-      <section>
+      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={Landmark} title="Loan Product" />
 
         {productsLoading && (
           <div className="grid gap-2.5 sm:grid-cols-2">
             {[0, 1].map((i) => (
-              <div key={i} className="h-[74px] animate-pulse rounded-lg border border-border bg-muted" />
+              <div key={i} className="h-[74px] animate-pulse rounded-lg border border-border bg-card" />
             ))}
           </div>
         )}
@@ -70,10 +70,10 @@ export function Step2LoanDetails({ formData, onChange, products, productsLoading
                   key={product.id}
                   type="button"
                   onClick={() => onChange('loanProductId', product.id)}
-                  className={`rounded-lg border px-3.5 py-3 text-left transition-colors ${
+                  className={`rounded-lg border px-3.5 py-3 text-left transition-all ${
                     isSelected
                       ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border bg-card hover:bg-muted/60'
+                      : 'border-border bg-card hover:border-foreground/20 hover:bg-muted/60'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -91,7 +91,7 @@ export function Step2LoanDetails({ formData, onChange, products, productsLoading
         )}
       </section>
 
-      <section>
+      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={Wallet} title="Amount & Duration" />
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -131,13 +131,13 @@ export function Step2LoanDetails({ formData, onChange, products, productsLoading
         </div>
       </section>
 
-      <section>
+      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={FileText} title="Purpose" />
         <Textarea
           value={formData.purpose}
           onChange={(e) => onChange('purpose', e.target.value)}
           placeholder="Describe the purpose of the loan"
-          className="resize-none text-sm text-foreground placeholder:text-muted-foreground/60"
+          className="resize-none border-input bg-background text-sm text-foreground placeholder:text-muted-foreground/60"
           rows={4}
         />
       </section>

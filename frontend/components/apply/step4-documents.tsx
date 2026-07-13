@@ -1,7 +1,6 @@
 // components/apply/step4-documents.tsx
-// FULL FILE — semantic tokens restored. Same props/behavior.
-// Fix: added min-w-0 to grid + card containers to stop horizontal overflow
-// on small screens.
+// FULL FILE — visual pass only. Same upload logic, state, and overflow
+// fixes as the original.
 
 'use client';
 
@@ -54,22 +53,22 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
   };
 
   return (
-    <div className="w-full min-w-0 space-y-4 overflow-x-hidden">
+    <div className="w-full min-w-0 space-y-5 overflow-x-hidden">
       <div className="hidden lg:block">
-        <h2 className="text-lg font-bold">Upload Documents</h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">Upload required supporting documents</p>
+        <h2 className="text-xl font-bold text-foreground">Upload Documents</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Upload required supporting documents</p>
       </div>
 
-      <div className="min-w-0">
-        <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2 text-xs">
+      <div className="min-w-0 rounded-lg border border-border/70 bg-muted/20 p-4">
+        <div className="mb-2 flex min-w-0 items-center justify-between gap-2 text-xs">
           <span className="min-w-0 truncate font-medium text-foreground">
             {requiredUploaded} of {REQUIRED_COUNT} required documents uploaded
           </span>
           <span className="shrink-0 text-muted-foreground">{uploadedTypes.length} of {DOCUMENT_TYPES.length} total</span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="h-1.5 overflow-hidden rounded-full bg-border">
           <div
-            className="h-full bg-accent transition-all duration-300"
+            className="h-full rounded-full bg-primary transition-all duration-300"
             style={{ width: `${(requiredUploaded / REQUIRED_COUNT) * 100}%` }}
           />
         </div>
@@ -85,14 +84,14 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
           return (
             <label
               key={doc.id}
-              className={`flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 transition-colors ${
-                isUploaded ? 'border-accent/50 bg-accent/10' : 'border-border bg-card hover:bg-muted/60'
+              className={`flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-lg border p-3.5 transition-colors ${
+                isUploaded ? 'border-primary/40 bg-primary/5' : 'border-border bg-card hover:border-foreground/20 hover:bg-muted/40'
               }`}
             >
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
-                    isUploaded ? 'bg-accent/20 text-accent-foreground' : 'bg-muted text-muted-foreground'
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
+                    isUploaded ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {isUploading ? (

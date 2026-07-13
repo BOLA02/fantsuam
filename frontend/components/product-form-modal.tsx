@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { X, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   LoanProduct,
@@ -73,6 +74,22 @@ const toNumber = (value: string): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const inputClassName =
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground';
+const labelClassName = 'mb-1.5 block text-sm font-medium text-foreground';
+
+function FormSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export function ProductFormModal({ isOpen, onClose, onSubmit, editingProduct }: ProductFormModalProps) {
   const [formData, setFormData] = useState<ProductFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -113,7 +130,7 @@ export function ProductFormModal({ isOpen, onClose, onSubmit, editingProduct }: 
     const maximumAmount = toNumber(formData.maximumAmount);
 
     if (maximumAmount < minimumAmount) {
-      setError('Maximum amount cannot be less than minimum amount');
+      setError('Maximum amount cannot be less than minimum amount.');
       return;
     }
 
@@ -133,18 +150,13 @@ export function ProductFormModal({ isOpen, onClose, onSubmit, editingProduct }: 
       };
       await onSubmit(payload);
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError('Failed to save product. Please check the form and try again.');
+      setError(err?.message || 'Failed to save product. Please check the form and try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const inputClassName =
-    'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground';
-  const labelClassName =
-    'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground mb-1.5 block';
 
   const addFee = () =>
     setFormData({ ...formData, fees: [...formData.fees, { feeName: '', amount: '', percentage: false }] });
@@ -167,269 +179,319 @@ export function ProductFormModal({ isOpen, onClose, onSubmit, editingProduct }: 
     setFormData({ ...formData, requirements: formData.requirements.filter((_, idx) => idx !== i) });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-lg max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4 text-foreground">
-          {editingProduct ? 'Edit Loan Product' : 'Add New Product'}
-        </h2>
-
-        {error && (
-          <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmitClick} className="space-y-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <label htmlFor="productCode" className={labelClassName}>Product Code</label>
-            <input
-              id="productCode"
-              className={inputClassName}
-              value={formData.productCode}
-              onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
-              minLength={2}
-              maxLength={20}
-              disabled={!!editingProduct}
-              required
-            />
+            <h2 className="text-lg font-semibold text-foreground">
+              {editingProduct ? 'Edit Loan Product' : 'New Loan Product'}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {editingProduct
+                ? `Editing ${editingProduct.productCode}`
+                : 'Configure a new loan product for your borrowers.'}
+            </p>
           </div>
-          <div>
-            <label htmlFor="name" className={labelClassName}>Product Name</label>
-            <input
-              id="name"
-              className={inputClassName}
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              minLength={3}
-              maxLength={100}
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="description" className={labelClassName}>Description</label>
-            <input
-              id="description"
-              className={inputClassName}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="minimumAmount" className={labelClassName}>Min Amount (₦)</label>
-              <input
-                id="minimumAmount"
-                type="number"
-                inputMode="decimal"
-                min={0.01}
-                step="0.01"
-                className={inputClassName}
-                value={formData.minimumAmount}
-                onChange={(e) => setFormData({ ...formData, minimumAmount: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="maximumAmount" className={labelClassName}>Max Amount (₦)</label>
-              <input
-                id="maximumAmount"
-                type="number"
-                inputMode="decimal"
-                min={0.01}
-                step="0.01"
-                className={inputClassName}
-                value={formData.maximumAmount}
-                onChange={(e) => setFormData({ ...formData, maximumAmount: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label htmlFor="interestRate" className={labelClassName}>Interest %</label>
-              <input
-                id="interestRate"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.1"
-                className={inputClassName}
-                value={formData.interestRate}
-                onChange={(e) => setFormData({ ...formData, interestRate: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="processingFee" className={labelClassName}>Processing Fee (₦)</label>
-              <input
-                id="processingFee"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                className={inputClassName}
-                value={formData.processingFee}
-                onChange={(e) => setFormData({ ...formData, processingFee: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="penaltyRate" className={labelClassName}>Penalty %</label>
-              <input
-                id="penaltyRate"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.1"
-                className={inputClassName}
-                value={formData.penaltyRate}
-                onChange={(e) => setFormData({ ...formData, penaltyRate: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="maximumDuration" className={labelClassName}>Max Duration (months)</label>
-              <input
-                id="maximumDuration"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                step={1}
-                className={inputClassName}
-                value={formData.maximumDuration}
-                onChange={(e) => setFormData({ ...formData, maximumDuration: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="repaymentFrequency" className={labelClassName}>Repayment Frequency</label>
-              <select
-                id="repaymentFrequency"
-                className={inputClassName}
-                value={formData.repaymentFrequency}
-                onChange={(e) =>
-                  setFormData({ ...formData, repaymentFrequency: e.target.value as RepaymentFrequency })
-                }
-                required
-              >
-                {REPAYMENT_FREQUENCIES.map((freq) => (
-                  <option key={freq} value={freq}>{freq.replace('_', '-')}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                checked={formData.requiresGuarantor}
-                onChange={(e) => setFormData({ ...formData, requiresGuarantor: e.target.checked })}
-              />
-              Requires Guarantor
-            </label>
-            <label className="flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                checked={formData.requiresBVN}
-                onChange={(e) => setFormData({ ...formData, requiresBVN: e.target.checked })}
-              />
-              Requires BVN
-            </label>
-            <label className="flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                checked={formData.requiresNIN}
-                onChange={(e) => setFormData({ ...formData, requiresNIN: e.target.checked })}
-              />
-              Requires NIN
-            </label>
-          </div>
+        {/* Body */}
+        <form onSubmit={handleSubmitClick} className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+            {error && (
+              <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
-          {/* Fees */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className={labelClassName + ' mb-0'}>Fees</label>
-              <Button type="button" variant="outline" size="sm" onClick={addFee}>+ Add Fee</Button>
-            </div>
-            <div className="space-y-2">
-              {formData.fees.map((fee, i) => (
-                <div key={i} className="flex gap-2 items-center">
+            <FormSection title="Basic information">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="productCode" className={labelClassName}>Product Code</label>
                   <input
+                    id="productCode"
                     className={inputClassName}
-                    placeholder="Fee name"
-                    value={fee.feeName}
-                    onChange={(e) => updateFee(i, { feeName: e.target.value })}
+                    value={formData.productCode}
+                    onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
+                    minLength={2}
+                    maxLength={20}
+                    disabled={!!editingProduct}
+                    required
                   />
+                </div>
+                <div>
+                  <label htmlFor="name" className={labelClassName}>Product Name</label>
                   <input
-                    className={inputClassName + ' w-28'}
+                    id="name"
+                    className={inputClassName}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    minLength={3}
+                    maxLength={100}
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="description" className={labelClassName}>Description</label>
+                <input
+                  id="description"
+                  className={inputClassName}
+                  placeholder="Optional — shown to loan officers and borrowers"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+            </FormSection>
+
+            <FormSection title="Loan terms" description="Amount range, cost, and repayment structure.">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="minimumAmount" className={labelClassName}>Min Amount (₦)</label>
+                  <input
+                    id="minimumAmount"
+                    type="number"
+                    inputMode="decimal"
+                    min={0.01}
+                    step="0.01"
+                    className={inputClassName}
+                    value={formData.minimumAmount}
+                    onChange={(e) => setFormData({ ...formData, minimumAmount: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="maximumAmount" className={labelClassName}>Max Amount (₦)</label>
+                  <input
+                    id="maximumAmount"
+                    type="number"
+                    inputMode="decimal"
+                    min={0.01}
+                    step="0.01"
+                    className={inputClassName}
+                    value={formData.maximumAmount}
+                    onChange={(e) => setFormData({ ...formData, maximumAmount: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label htmlFor="interestRate" className={labelClassName}>Interest %</label>
+                  <input
+                    id="interestRate"
                     type="number"
                     inputMode="decimal"
                     min={0}
-                    placeholder="Amount"
-                    value={fee.amount}
-                    onChange={(e) => updateFee(i, { amount: e.target.value })}
+                    step="0.1"
+                    className={inputClassName}
+                    value={formData.interestRate}
+                    onChange={(e) => setFormData({ ...formData, interestRate: e.target.value })}
+                    required
                   />
-                  <label className="flex items-center gap-1 text-xs text-foreground whitespace-nowrap">
+                </div>
+                <div>
+                  <label htmlFor="processingFee" className={labelClassName}>Processing Fee (₦)</label>
+                  <input
+                    id="processingFee"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    className={inputClassName}
+                    value={formData.processingFee}
+                    onChange={(e) => setFormData({ ...formData, processingFee: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="penaltyRate" className={labelClassName}>Penalty %</label>
+                  <input
+                    id="penaltyRate"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.1"
+                    className={inputClassName}
+                    value={formData.penaltyRate}
+                    onChange={(e) => setFormData({ ...formData, penaltyRate: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="maximumDuration" className={labelClassName}>Max Duration (months)</label>
+                  <input
+                    id="maximumDuration"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                    className={inputClassName}
+                    value={formData.maximumDuration}
+                    onChange={(e) => setFormData({ ...formData, maximumDuration: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="repaymentFrequency" className={labelClassName}>Repayment Frequency</label>
+                  <select
+                    id="repaymentFrequency"
+                    className={inputClassName}
+                    value={formData.repaymentFrequency}
+                    onChange={(e) =>
+                      setFormData({ ...formData, repaymentFrequency: e.target.value as RepaymentFrequency })
+                    }
+                    required
+                  >
+                    {REPAYMENT_FREQUENCIES.map((freq) => (
+                      <option key={freq} value={freq}>{freq.replace('_', '-')}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Eligibility requirements" description="What a borrower must provide to qualify.">
+              <div className="flex flex-wrap gap-3">
+                {([
+                  ['requiresGuarantor', 'Guarantor'],
+                  ['requiresBVN', 'BVN'],
+                  ['requiresNIN', 'NIN'],
+                ] as const).map(([key, label]) => (
+                  <label
+                    key={key}
+                    className={
+                      'flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ' +
+                      (formData[key]
+                        ? 'border-primary/40 bg-primary/5 text-foreground'
+                        : 'border-border text-muted-foreground hover:bg-secondary/50')
+                    }
+                  >
                     <input
                       type="checkbox"
-                      checked={fee.percentage}
-                      onChange={(e) => updateFee(i, { percentage: e.target.checked })}
+                      checked={formData[key]}
+                      onChange={(e) => setFormData({ ...formData, [key]: e.target.checked })}
+                      className="accent-primary"
                     />
-                    %
+                    {label}
                   </label>
-                  <button type="button" onClick={() => removeFee(i)} className="text-destructive text-sm px-1">
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
+            </FormSection>
 
-          {/* Requirements */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className={labelClassName + ' mb-0'}>Requirements</label>
-              <Button type="button" variant="outline" size="sm" onClick={addRequirement}>+ Add Requirement</Button>
-            </div>
-            <div className="space-y-2">
-              {formData.requirements.map((req, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <input
-                    className={inputClassName}
-                    placeholder="Title (e.g. ID Card)"
-                    value={req.title}
-                    onChange={(e) => updateRequirement(i, { title: e.target.value })}
-                  />
-                  <input
-                    className={inputClassName}
-                    placeholder="Description (optional)"
-                    value={req.description ?? ''}
-                    onChange={(e) => updateRequirement(i, { description: e.target.value })}
-                  />
-                  <label className="flex items-center gap-1 text-xs text-foreground whitespace-nowrap">
+            <FormSection title="Fees" description="Any additional charges beyond interest.">
+              <div className="space-y-2">
+                {formData.fees.map((fee, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-md border border-border p-2">
                     <input
-                      type="checkbox"
-                      checked={req.required}
-                      onChange={(e) => updateRequirement(i, { required: e.target.checked })}
+                      className={inputClassName}
+                      placeholder="Fee name"
+                      value={fee.feeName}
+                      onChange={(e) => updateFee(i, { feeName: e.target.value })}
                     />
-                    Req'd
-                  </label>
-                  <button type="button" onClick={() => removeRequirement(i)} className="text-destructive text-sm px-1">
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <input
+                      className={inputClassName + ' w-28'}
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      placeholder="Amount"
+                      value={fee.amount}
+                      onChange={(e) => updateFee(i, { amount: e.target.value })}
+                    />
+                    <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={fee.percentage}
+                        onChange={(e) => updateFee(i, { percentage: e.target.checked })}
+                        className="accent-primary"
+                      />
+                      %
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeFee(i)}
+                      className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      aria-label="Remove fee"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addFee}
+                  className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  <Plus size={15} /> Add fee
+                </button>
+              </div>
+            </FormSection>
+
+            <FormSection title="Documentation requirements" description="Listed items borrowers must submit.">
+              <div className="space-y-2">
+                {formData.requirements.map((req, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-md border border-border p-2">
+                    <input
+                      className={inputClassName}
+                      placeholder="Title (e.g. ID Card)"
+                      value={req.title}
+                      onChange={(e) => updateRequirement(i, { title: e.target.value })}
+                    />
+                    <input
+                      className={inputClassName}
+                      placeholder="Description (optional)"
+                      value={req.description ?? ''}
+                      onChange={(e) => updateRequirement(i, { description: e.target.value })}
+                    />
+                    <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={req.required}
+                        onChange={(e) => updateRequirement(i, { required: e.target.checked })}
+                        className="accent-primary"
+                      />
+                      Req'd
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeRequirement(i)}
+                      className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      aria-label="Remove requirement"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addRequirement}
+                  className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  <Plus size={15} /> Add requirement
+                </button>
+              </div>
+            </FormSection>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          {/* Footer */}
+          <div className="flex justify-end gap-2 border-t border-border bg-card px-6 py-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save Product'}
+              {isSubmitting ? 'Saving…' : editingProduct ? 'Save changes' : 'Create product'}
             </Button>
           </div>
         </form>

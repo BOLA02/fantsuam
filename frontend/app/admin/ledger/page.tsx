@@ -1,9 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Download, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  Download,
+  ChevronRight,
+  Search,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Scale,
+  BookOpen,
+  RotateCw,
+} from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { Badge } from '@/components/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/form';
 import { api } from '@/lib/api-routes';
@@ -84,14 +92,30 @@ function groupEntries(entries: NormalizedEntry[]): GroupedLedgerRow[] {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-const typeColorMap: Record<TransactionType, 'default' | 'primary' | 'accent' | 'secondary' | 'destructive'> = {
-  LOAN_DISBURSEMENT: 'primary',
-  REPAYMENT: 'accent',
-  INTEREST: 'accent',
-  PENALTY: 'destructive',
-  PROCESSING_FEE: 'secondary',
-  ADJUSTMENT: 'default',
+// Deliberately not using the shared Badge component here — its "secondary" /
+// "primary" variants render as the app's brand green, and its default
+// padding is oversized for a dense table column. This is a small, self-
+// contained pill with explicit, non-green colors and a minimal footprint.
+const typeStyleMap: Record<TransactionType, string> = {
+  LOAN_DISBURSEMENT: 'bg-slate-100 text-slate-700',
+  REPAYMENT: 'bg-indigo-50 text-indigo-700',
+  INTEREST: 'bg-violet-50 text-violet-700',
+  PENALTY: 'bg-rose-50 text-rose-700',
+  PROCESSING_FEE: 'bg-slate-100 text-slate-600',
+  ADJUSTMENT: 'bg-gray-100 text-gray-600',
 };
+
+function TypeTag({ type }: { type: TransactionType }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium leading-tight whitespace-nowrap ${
+        typeStyleMap[type] ?? 'bg-gray-100 text-gray-600'
+      }`}
+    >
+      {type.replace(/_/g, ' ')}
+    </span>
+  );
+}
 
 export default function LedgerPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -135,30 +159,61 @@ export default function LedgerPage() {
     });
   }
 
-  const formatCurrency = (amount: number) => `₦${Number(amount).toLocaleString()}`;
+  const formatCurrency = (amount: number) =>
+    `₦${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
-  const groups = groupEntries(entries);
-  const totalDebits = entries.reduce((sum, e) => sum + e.debit, 0);
-  const totalCredits = entries.reduce((sum, e) => sum + e.credit, 0);
+  const groups = useMemo(() => groupEntries(entries), [entries]);
+  const totalDebits = useMemo(() => entries.reduce((sum, e) => sum + e.debit, 0), [entries]);
+  const totalCredits = useMemo(() => entries.reduce((sum, e) => sum + e.credit, 0), [entries]);
+  const netMovement = totalCredits - totalDebits;
 
   return (
     <div className="space-y-6">
       <PageHeader title="Financial Ledger" description="Complete record of all financial transactions" />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground font-medium uppercase">Total Debits</p>
-          <p className="text-2xl font-bold text-foreground mt-2">{formatCurrency(totalDebits)}</p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-700">
+            <ArrowUpCircle size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Total debits</p>
+            <p className="text-lg font-semibold text-foreground tabular-nums truncate">
+              {loading ? '—' : formatCurrency(totalDebits)}
+            </p>
+          </div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground font-medium uppercase">Total Credits</p>
-          <p className="text-2xl font-bold text-accent mt-2">{formatCurrency(totalCredits)}</p>
+
+        <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+            <ArrowDownCircle size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Total credits</p>
+            <p className="text-lg font-semibold text-foreground tabular-nums truncate">
+              {loading ? '—' : formatCurrency(totalCredits)}
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+            <Scale size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Net movement</p>
+            <p className="text-lg font-semibold text-foreground tabular-nums truncate">
+              {loading ? '—' : `${netMovement >= 0 ? '+' : '−'}${formatCurrency(Math.abs(netMovement))}`}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className="flex-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
+            className="pl-9"
             placeholder="Search by narration, ledger #, or loan number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -170,28 +225,49 @@ export default function LedgerPage() {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-6 text-center text-muted-foreground">Loading ledger...</div>
+          <div className="p-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <RotateCw size={20} className="animate-spin" />
+            <p className="text-sm">Loading ledger…</p>
+          </div>
         ) : error ? (
-          <div className="p-6 text-center text-destructive">{error}</div>
+          <div className="p-10 flex flex-col items-center justify-center gap-2 text-center">
+            <p className="text-sm font-medium text-destructive">{error}</p>
+            <button
+              type="button"
+              onClick={() => fetchLedger(searchTerm || undefined)}
+              className="text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              Try again
+            </button>
+          </div>
         ) : groups.length === 0 ? (
-          <div className="p-6 text-center text-muted-foreground">No transactions found</div>
+          <div className="p-16 flex flex-col items-center justify-center gap-2 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-muted-foreground mb-1">
+              <BookOpen size={20} />
+            </div>
+            <p className="text-sm font-medium text-foreground">No transactions found</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              {searchTerm
+                ? `No entries match "${searchTerm}". Try a different term.`
+                : 'Ledger entries will show up here once transactions are recorded.'}
+            </p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div>
+            <table className="w-full text-sm table-fixed">
               <thead>
-                <tr className="text-left text-xs text-muted-foreground border-b border-border bg-secondary/30">
-                  <th className="py-3 px-4 w-8"></th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Narration</th>
-                  <th className="py-3 px-4">Customer</th>
-                  <th className="py-3 px-4">Loan</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Debit</th>
-                  <th className="py-3 px-4">Credit</th>
-                  <th className="py-3 px-4">Balance</th>
-                  <th className="py-3 px-4">Ledger #</th>
+                <tr className="text-left text-xs font-medium uppercase tracking-wide text-muted-foreground border-b border-border bg-slate-50">
+                  <th className="py-3 pl-4 pr-2 w-[9%]">Date</th>
+                  <th className="py-3 px-2 w-[24%]">Narration</th>
+                  <th className="py-3 px-2 w-[15%] hidden lg:table-cell">Customer</th>
+                  <th className="py-3 px-2 w-[10%] hidden md:table-cell">Type</th>
+                  <th className="py-3 px-2 w-[10%] text-right">Debit</th>
+                  <th className="py-3 px-2 w-[10%] text-right">Credit</th>
+                  <th className="py-3 px-2 w-[10%] text-right">Balance</th>
+                  <th className="py-3 pl-2 pr-2 w-[9%] hidden sm:table-cell">Ledger #</th>
+                  <th className="py-3 pl-2 pr-4 w-[8%] text-right">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,58 +276,128 @@ export default function LedgerPage() {
                   const isMultiEntry = group.entries.length > 1;
                   return (
                     <>
-                      <tr key={group.groupKey} className="border-b border-border last:border-0">
-                        <td className="py-3 px-4">
-                          {isMultiEntry && (
+                      <tr
+                        key={group.groupKey}
+                        className="group border-b border-border last:border-0 transition-colors hover:bg-slate-50"
+                      >
+                        <td className="py-3 pl-4 pr-2 text-foreground truncate">
+                          {new Date(group.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
+                        </td>
+                        <td className="py-3 px-2 text-foreground truncate" title={group.narration}>
+                          {group.narration}
+                        </td>
+                        <td className="py-3 px-2 text-foreground truncate hidden lg:table-cell">
+                          {group.customerName}
+                        </td>
+                        <td className="py-3 px-2 hidden md:table-cell">
+                          <TypeTag type={group.type} />
+                        </td>
+                        <td className="py-3 px-2 text-foreground text-right tabular-nums truncate">
+                          {group.totalDebit > 0 ? formatCurrency(group.totalDebit) : '—'}
+                        </td>
+                        <td className="py-3 px-2 text-foreground text-right tabular-nums truncate">
+                          {group.totalCredit > 0 ? formatCurrency(group.totalCredit) : '—'}
+                        </td>
+                        <td className="py-3 px-2 font-semibold text-foreground text-right tabular-nums truncate">
+                          {formatCurrency(group.finalBalance)}
+                        </td>
+                        <td className="py-3 pl-2 pr-2 font-mono text-xs text-muted-foreground truncate hidden sm:table-cell">
+                          {group.ledgerNumber}
+                        </td>
+                        <td className="py-3 pl-2 pr-4">
+                          <div className="flex justify-end">
                             <button
                               type="button"
                               onClick={() => toggleExpand(group.groupKey)}
-                              className="text-muted-foreground hover:text-foreground"
+                              aria-expanded={isExpanded}
+                              aria-label={isExpanded ? 'Hide transaction details' : 'Show transaction details'}
+                              title={isExpanded ? 'Hide details' : 'Show details'}
+                              className={`group/toggle inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
+                                isExpanded
+                                  ? 'border-primary/30 bg-primary/10 text-primary'
+                                  : 'border-border text-muted-foreground hover:bg-slate-100 hover:text-foreground'
+                              }`}
                             >
-                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                              Details
+                              <ChevronRight
+                                size={13}
+                                className={`transition-transform duration-200 ease-out ${
+                                  isExpanded ? 'rotate-90' : 'rotate-0 group-hover/toggle:translate-x-0.5'
+                                }`}
+                              />
                             </button>
-                          )}
+                          </div>
                         </td>
-                        <td className="py-3 px-4 text-foreground">{new Date(group.date).toLocaleDateString()}</td>
-                        <td className="py-3 px-4 text-foreground">{group.narration}</td>
-                        <td className="py-3 px-4 text-foreground">{group.customerName}</td>
-                        <td className="py-3 px-4 text-foreground">{group.loanNumber}</td>
-                        <td className="py-3 px-4">
-                          <Badge variant={typeColorMap[group.type] || 'default'} size="sm">
-                            {group.type.replace(/_/g, ' ')}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-foreground">
-                          {group.totalDebit > 0 ? formatCurrency(group.totalDebit) : '—'}
-                        </td>
-                        <td className="py-3 px-4 text-foreground">
-                          {group.totalCredit > 0 ? formatCurrency(group.totalCredit) : '—'}
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-foreground">
-                          {formatCurrency(group.finalBalance)}
-                        </td>
-                        <td className="py-3 px-4 font-mono text-xs text-foreground">{group.ledgerNumber}</td>
                       </tr>
-                      {isExpanded &&
-                        group.entries.map((e) => (
-                          <tr key={e.id} className="border-b border-border last:border-0 bg-secondary/20">
-                            <td className="py-2 px-4"></td>
-                            <td className="py-2 px-4 text-xs text-muted-foreground">
-                              {new Date(e.date).toLocaleDateString()}
-                            </td>
-                            <td className="py-2 px-4 text-xs text-muted-foreground" colSpan={4}>
-                              {e.narration}
-                            </td>
-                            <td className="py-2 px-4 text-xs text-muted-foreground">
-                              {e.debit > 0 ? formatCurrency(e.debit) : '—'}
-                            </td>
-                            <td className="py-2 px-4 text-xs text-muted-foreground">
-                              {e.credit > 0 ? formatCurrency(e.credit) : '—'}
-                            </td>
-                            <td className="py-2 px-4 text-xs text-muted-foreground">{formatCurrency(e.balance)}</td>
-                            <td className="py-2 px-4 font-mono text-xs text-muted-foreground">{e.ledgerNumber}</td>
-                          </tr>
-                        ))}
+                      {isExpanded && (
+                        <tr className="border-b border-border last:border-0 bg-slate-50">
+                          <td colSpan={9} className="px-4 py-3">
+                            <div className="rounded-lg border border-border bg-slate-50 p-3 space-y-3">
+                              {/* Fields hidden as table columns on narrower screens — always
+                                  surfaced here so no detail is ever fully out of reach. */}
+                              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+                                <div>
+                                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Customer</dt>
+                                  <dd className="text-sm text-foreground truncate">{group.customerName}</dd>
+                                </div>
+                                <div>
+                                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Loan</dt>
+                                  <dd className="text-sm text-foreground font-mono truncate">{group.loanNumber}</dd>
+                                </div>
+                                <div>
+                                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Type</dt>
+                                  <dd className="mt-0.5">
+                                    <TypeTag type={group.type} />
+                                  </dd>
+                                </div>
+                                <div>
+                                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Ledger #</dt>
+                                  <dd className="text-sm text-foreground font-mono truncate">{group.ledgerNumber}</dd>
+                                </div>
+                              </dl>
+
+                              {isMultiEntry && (
+                                <div className="border-t border-border pt-3">
+                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                                    {group.entries.length} entries in this transaction
+                                  </p>
+                                  <div className="space-y-1.5">
+                                    {group.entries.map((e) => (
+                                      <div
+                                        key={e.id}
+                                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-md bg-slate-50 px-3 py-2 text-xs"
+                                      >
+                                        <span className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+                                          <span className="h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+                                          <span className="text-foreground shrink-0">
+                                            {new Date(e.date).toLocaleDateString(undefined, {
+                                              day: '2-digit',
+                                              month: 'short',
+                                            })}
+                                          </span>
+                                          <span className="truncate">{e.narration}</span>
+                                        </span>
+                                        <span className="flex items-center gap-4 shrink-0 tabular-nums">
+                                          <span className="text-muted-foreground">
+                                            Debit {e.debit > 0 ? formatCurrency(e.debit) : '—'}
+                                          </span>
+                                          <span className="text-muted-foreground">
+                                            Credit {e.credit > 0 ? formatCurrency(e.credit) : '—'}
+                                          </span>
+                                          <span className="text-foreground font-medium">
+                                            Bal {formatCurrency(e.balance)}
+                                          </span>
+                                          <span className="font-mono text-muted-foreground">{e.ledgerNumber}</span>
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </>
                   );
                 })}

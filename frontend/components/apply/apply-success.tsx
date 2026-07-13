@@ -1,5 +1,5 @@
 // components/apply/apply-success.tsx
-// FULL FILE — semantic tokens restored.
+// FULL FILE — visual pass only. Same copy-to-clipboard logic as original.
 
 'use client';
 
@@ -47,20 +47,20 @@ export function ApplySuccess({ applicationNumber }: Props) {
         </div>
       </nav>
 
-      <div className="flex flex-1 items-center justify-center px-4 py-10">
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-6 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/15">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary/15 ring-4 ring-secondary/10">
               <CheckCircle2 size={32} className="text-secondary" />
             </div>
           </div>
 
-          <h1 className="text-center text-2xl font-bold">Application Submitted</h1>
+          <h1 className="text-center text-2xl font-bold text-foreground">Application Submitted</h1>
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Your application has been received and is now under review.
           </p>
 
-          <div className="mt-6 rounded-lg border border-border bg-card p-4">
+          <div className="mt-6 rounded-xl border border-border bg-card p-4 shadow-sm">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Application Number
             </p>
@@ -69,7 +69,7 @@ export function ApplySuccess({ applicationNumber }: Props) {
               <button
                 type="button"
                 onClick={handleCopy}
-                className="flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+                className="flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
               >
                 {copied ? <Check size={13} className="text-secondary" /> : <Copy size={13} />}
                 {copied ? 'Copied' : 'Copy'}
@@ -78,7 +78,7 @@ export function ApplySuccess({ applicationNumber }: Props) {
             <p className="mt-2 text-xs text-muted-foreground">Keep this number to track your application status.</p>
           </div>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-7 space-y-3.5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">What happens next</p>
             {NEXT_STEPS.map((step, i) => (
               <div key={i} className="flex items-start gap-3">

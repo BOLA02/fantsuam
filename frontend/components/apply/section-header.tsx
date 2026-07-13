@@ -1,7 +1,6 @@
 // components/apply/section-header.tsx
-// FULL FILE — back on semantic tokens now that muted-foreground has real contrast
-
-'use client';
+// NEW FILE — interface inferred from usage in Step1/2/3
+// (`<SectionHeader icon={X} title="..." />`, optionally with `hint`).
 
 interface Props {
   icon: React.ElementType;
@@ -11,15 +10,17 @@ interface Props {
 
 export function SectionHeader({ icon: Icon, title, hint }: Props) {
   return (
-    <div className="mb-3 mt-1 flex items-center gap-2">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-        <Icon size={13} />
+    <div className="mb-3 flex items-center gap-2.5">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Icon size={14} />
       </div>
-      <h3 className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {title}
-      </h3>
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      {hint && (
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {hint}
+        </span>
+      )}
       <div className="h-px flex-1 bg-border" />
-      {hint && <span className="whitespace-nowrap text-[11px] text-muted-foreground/80">{hint}</span>}
     </div>
   );
 }

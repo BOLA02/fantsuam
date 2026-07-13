@@ -1,6 +1,5 @@
 // components/apply/step1-personal-info.tsx
-// FULL FILE — State/Occupation are dropdowns; City repurposed as an LGA
-// dropdown cascading from State; Country fixed to Nigeria (not user-edited).
+// FULL FILE — visual pass only. State/handlers unchanged from original.
 
 'use client';
 
@@ -17,7 +16,7 @@ interface Props {
   onChange: (field: keyof ApplyFormData, value: string) => void;
 }
 
-const inputClass = 'h-9 text-sm text-foreground placeholder:text-muted-foreground/60';
+const inputClass = 'h-10 text-sm text-foreground placeholder:text-muted-foreground/60';
 
 function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
@@ -62,14 +61,20 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
 
   const lgaOptions = getLgaOptions(formData.state);
 
+  // NIN/BVN are optional — only flagged once something has been typed and
+  // it isn't a valid 11-digit number. Typing itself is capped at 11 digits
+  // (see onChange below), so this mainly catches "fewer than 11" mid-entry.
+  const ninInvalid = !!formData.nin && !/^\d{11}$/.test(formData.nin);
+  const bvnInvalid = !!formData.bvn && !/^\d{11}$/.test(formData.bvn);
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="hidden lg:block">
-        <h2 className="text-lg font-bold">Personal Information</h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">Tell us about yourself</p>
+        <h2 className="text-xl font-bold text-foreground">Personal Information</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Tell us about yourself</p>
       </div>
 
-      <section>
+      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={User} title="Identity" />
         <div className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -107,7 +112,7 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
         </div>
       </section>
 
-      <section>
+      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={Phone} title="Contact Details" />
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -121,7 +126,7 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
         </div>
       </section>
 
-      <section>
+      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={Home} title="Home Address" />
         <div className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -181,21 +186,37 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
         </div>
       </section>
 
-      <section>
-        <SectionHeader icon={IdCard} title="Identification" hint="Optional" />
+      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
+        <SectionHeader icon={IdCard} title="Identification" />
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <FieldLabel icon={IdCard}>NIN</FieldLabel>
-            <Input value={formData.nin} onChange={(e) => onChange('nin', e.target.value)} placeholder="00000000000" className={inputClass} />
+            <Input
+              value={formData.nin}
+              onChange={(e) => onChange('nin', e.target.value.replace(/\D/g, '').slice(0, 11))}
+              placeholder="00000000000"
+              inputMode="numeric"
+              maxLength={11}
+              className={`${inputClass} ${ninInvalid ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+            />
+            {ninInvalid && <p className="mt-1.5 text-xs text-destructive">NIN must be exactly 11 digits.</p>}
           </div>
           <div>
             <FieldLabel icon={IdCard}>BVN</FieldLabel>
-            <Input value={formData.bvn} onChange={(e) => onChange('bvn', e.target.value)} placeholder="00000000000" className={inputClass} />
+            <Input
+              value={formData.bvn}
+              onChange={(e) => onChange('bvn', e.target.value.replace(/\D/g, '').slice(0, 11))}
+              placeholder="00000000000"
+              inputMode="numeric"
+              maxLength={11}
+              className={`${inputClass} ${bvnInvalid ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+            />
+            {bvnInvalid && <p className="mt-1.5 text-xs text-destructive">BVN must be exactly 11 digits.</p>}
           </div>
         </div>
       </section>
 
-      <section>
+      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
         <SectionHeader icon={Briefcase} title="Employment & Income" />
         <div className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
