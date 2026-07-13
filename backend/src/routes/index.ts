@@ -17,6 +17,7 @@ import ledgerRoutes from "../modules/accounting";
 import sms from "../modules/notifications";
 import otpRoutes from "../modules/otp";
 import resumeRoutes from "../modules/resume";
+import searchRoutes from "../modules/search";
 
 const router = Router();
 
@@ -34,5 +35,5 @@ router.use("/ledger", ledgerRoutes);
 router.use("/sms", sms);
 router.use("/otp", otpRoutes);
 router.use("/resume", resumeRoutes);
-
+router.use("/search", searchRoutes);
 export default router;
