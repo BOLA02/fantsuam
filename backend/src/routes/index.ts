@@ -18,6 +18,7 @@ import sms from "../modules/notifications";
 import otpRoutes from "../modules/otp";
 import resumeRoutes from "../modules/resume";
 import searchRoutes from "../modules/search";
+import settingsRoutes from "../modules/settings";
 
 const router = Router();
 
@@ -36,4 +37,7 @@ router.use("/sms", sms);
 router.use("/otp", otpRoutes);
 router.use("/resume", resumeRoutes);
 router.use("/search", searchRoutes);
+router.use("/settings", settingsRoutes);
+
+
 export default router;

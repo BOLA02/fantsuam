@@ -1026,7 +1026,17 @@ model OtpCode {
 }
 
 
+// schema.prisma — add this model
 
+model OrganizationSettings {
+  id String @id @default(uuid())
+
+  organizationName String
+  email            String
+  phone            String
+
+  updatedAt DateTime @updatedAt
+}
 
 
 //////////////////////////////////////////////////////////
