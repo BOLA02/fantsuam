@@ -32,6 +32,24 @@ export class RepaymentService {
     throw new AppError(500, 'Failed to generate receipt number');
   }
 
+  private assertAmountWithinOutstanding(
+    loan: { outstandingBalance: unknown },
+    amount: number
+  ) {
+    const outstandingBalance = round2(Number(loan.outstandingBalance));
+    if (!Number.isFinite(outstandingBalance) || outstandingBalance <= 0) {
+      throw new AppError(400, 'Loan has no outstanding balance to repay');
+    }
+    if (round2(amount) > outstandingBalance) {
+      throw new AppError(
+        400,
+        `Payment amount cannot exceed outstanding balance (${outstandingBalance.toLocaleString(undefined, {
+          maximumFractionDigits: 2,
+        })})`
+      );
+    }
+  }
+
   /**
    * Waterfall: applies `amount` across unpaid schedules in installment
    * order, interest-first within each installment. Any leftover beyond
@@ -164,6 +182,7 @@ async recordCashPayment(payload: RecordCashPaymentInput, receivedById: string) {
     if (loan.status !== 'ACTIVE') {
       throw new AppError(400, `Cannot record a payment against a loan in status ${loan.status}`);
     }
+    this.assertAmountWithinOutstanding(loan, payload.amount);
 
     const rows = await prisma.$transaction(async (tx) => {
       const { splits, totalApplied } = await this.applyWaterfall(tx, payload.loanId, payload.amount);
@@ -233,6 +252,7 @@ async recordCashPayment(payload: RecordCashPaymentInput, receivedById: string) {
     if (loan.status !== 'ACTIVE') {
       throw new AppError(400, `Cannot record a payment against a loan in status ${loan.status}`);
     }
+    this.assertAmountWithinOutstanding(loan, payload.amount);
 
     return prisma.$transaction(async (tx) => {
       const transactionGroupId = crypto.randomUUID();
@@ -271,6 +291,7 @@ async recordCashPayment(payload: RecordCashPaymentInput, receivedById: string) {
     if (pending.confirmationStatus !== 'PENDING_VERIFICATION') {
       throw new AppError(400, 'Repayment is not pending verification');
     }
+    this.assertAmountWithinOutstanding(pending.loan, Number(pending.amount));
 
     const confirmed = await prisma.$transaction(async (tx) => {
       // ...unchanged existing body, including the ledger loop we added earlier...

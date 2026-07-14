@@ -14,7 +14,7 @@ exports.createCustomerSchema = zod_1.z.object({
         dateOfBirth: zod_1.z.coerce.date(),
         phone: zod_1.z.string().min(10),
         alternatePhone: zod_1.z.string().optional(),
-        email: zod_1.z.string().email().optional(),
+        email: zod_1.z.string().email(),
         nationality: zod_1.z.string().optional(),
         bvn: zod_1.z.string().length(11, "BVN must be 11 digits").optional(),
         nin: zod_1.z.string().length(11, "NIN must be 11 digits").optional(),

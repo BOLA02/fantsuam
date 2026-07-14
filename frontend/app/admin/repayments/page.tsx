@@ -96,6 +96,11 @@ interface PaymentFormState {
 
 const initialPaymentForm: PaymentFormState = { amount: '', paymentReference: '', remarks: '' };
 
+function toMoneyNumber(value: number | string | null | undefined) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
 export default function RepaymentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [repayments, setRepayments] = useState<Repayment[]>([]);
@@ -178,8 +183,17 @@ export default function RepaymentsPage() {
       return;
     }
     const amount = Number(form.amount);
-    if (!amount || amount <= 0) {
+    const outstandingBalance = toMoneyNumber(selectedLoan.outstandingBalance);
+    if (!Number.isFinite(amount) || amount <= 0) {
       setModalError('Enter a valid amount.');
+      return;
+    }
+    if (outstandingBalance <= 0) {
+      setModalError('This loan has no outstanding balance to repay.');
+      return;
+    }
+    if (amount > outstandingBalance) {
+      setModalError(`Amount cannot exceed the outstanding balance of ${formatCurrency(outstandingBalance)}.`);
       return;
     }
 
@@ -234,7 +248,7 @@ export default function RepaymentsPage() {
     });
   }
 
-  const formatCurrency = (amount: number) =>
+  const formatCurrency = (amount: number | string) =>
     `₦${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
   const groups = useMemo(() => groupByPayment(repayments), [repayments]);
@@ -677,6 +691,7 @@ export default function RepaymentsPage() {
                           className="pl-7"
                           type="number"
                           min="0"
+                          max={toMoneyNumber(selectedLoan.outstandingBalance)}
                           step="0.01"
                           placeholder="0.00"
                           value={form.amount}
@@ -684,6 +699,9 @@ export default function RepaymentsPage() {
                           required
                         />
                       </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Outstanding balance includes principal, interest, and fees: {formatCurrency(selectedLoan.outstandingBalance)}.
+                      </p>
                     </FormField>
 
                     <FormField label="Payment Reference (optional)">

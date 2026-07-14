@@ -1,3 +1,4 @@
+// components/auth/auth-shell.tsx
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight, HeartHandshake, ShieldCheck, Sprout } from 'lucide-react';
@@ -13,19 +14,17 @@ type AuthShellProps = {
 
 export function AuthShell({ eyebrow, title, description, children, footer, admin = false }: AuthShellProps) {
   return (
-    <main className="min-h-screen bg-[#F8F6F0] p-3 sm:p-5 lg:p-6">
-      <div className="mx-auto grid min-h-[calc(100vh-24px)] max-w-[1440px] overflow-hidden rounded-[2rem] border border-[#E6E0D3] bg-white shadow-[0_24px_70px_rgba(46,49,146,0.10)] lg:grid-cols-[minmax(0,0.94fr)_minmax(480px,1.06fr)]">
-        <section className="flex items-center justify-center px-6 py-10 sm:px-12 lg:px-16">
+   <main className="min-h-screen bg-[#F8F6F0]">
+      <div className="grid min-h-screen w-full lg:grid-cols-[minmax(0,0.94fr)_minmax(480px,1.06fr)]">
+        <section className="flex items-center justify-center bg-[#F8F6F0] px-6 py-10 sm:px-12 lg:px-16">
           <div className="w-full max-w-[430px]">
-            <Link href="/" className="mb-12 inline-flex items-center gap-3" aria-label="Fantsuam Foundation home">
-              <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-2xl border border-[#E5DDCB] bg-white shadow-sm">
-                <Image src="/LOGO.jpg" alt="Fantsuam Foundation" width={52} height={52} className="h-full w-full object-contain" priority />
-              </span>
-              <span>
-                <span className="block font-serif text-xl leading-none text-[#2E3192]">Fantsuam</span>
-                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.19em] text-[#1E7A34]">Foundation</span>
-              </span>
-            </Link>
+          
+
+<Link href="/" className="mb-10 flex justify-center" aria-label="Fantsuam Foundation home">
+  <span className="grid h-24 w-24 place-items-center overflow-hidden rounded-2xl border-2 border-[#E5DDCB] bg-white p-1.5 shadow-md">
+    <Image src="/LOGO.jpg" alt="Fantsuam Foundation" width={88} height={88} className="h-full w-full object-contain" priority />
+  </span>
+</Link>
 
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1E7A34]">{eyebrow}</p>
             <h1 className="mt-3 font-serif text-4xl leading-[1.08] text-[#25245D] sm:text-[2.75rem]">{title}</h1>
@@ -35,28 +34,54 @@ export function AuthShell({ eyebrow, title, description, children, footer, admin
           </div>
         </section>
 
-        <aside className="relative hidden overflow-hidden bg-[#2E3192] p-8 lg:flex lg:flex-col lg:justify-between xl:p-12">
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 15% 18%, #B9D86B 0 2px, transparent 2.5px), radial-gradient(circle at 78% 72%, #ffffff 0 1px, transparent 1.5px)', backgroundSize: '30px 30px, 24px 24px' }} />
-          <div className="absolute -right-24 top-14 h-80 w-80 rounded-full border-[48px] border-[#1E7A34]/70" />
-          <div className="absolute -bottom-28 -left-16 h-80 w-80 rounded-full bg-[#F4C95D]/20 blur-2xl" />
-          <div className="relative z-10 flex items-center gap-2 text-sm font-semibold text-white/80"><HeartHandshake size={18} className="text-[#B9D86B]" /> Community-powered progress</div>
+         <aside className="relative hidden overflow-hidden bg-[#1E2A5A] lg:flex lg:flex-col">
+          {/* contour rings, echoing the logo's ring motif */}
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 600 900" fill="none" preserveAspectRatio="xMidYMid slice">
+            <circle cx="540" cy="90" r="140" stroke="#4A9B5E" strokeOpacity="0.35" strokeWidth="10" />
+            <circle cx="540" cy="90" r="190" stroke="#4A9B5E" strokeOpacity="0.18" strokeWidth="6" />
+            <circle cx="70" cy="430" r="120" stroke="#F4C95D" strokeOpacity="0.22" strokeWidth="8" />
+            <circle cx="520" cy="760" r="170" stroke="#F4C95D" strokeOpacity="0.14" strokeWidth="6" />
+            <circle cx="520" cy="760" r="220" stroke="#ffffff" strokeOpacity="0.06" strokeWidth="1" />
+            <path d="M-20 300 C 160 240, 380 380, 620 300" stroke="#ffffff" strokeOpacity="0.08" strokeWidth="1.5" />
+            <path d="M-20 620 C 160 560, 380 700, 620 620" stroke="#ffffff" strokeOpacity="0.08" strokeWidth="1.5" />
+          </svg>
 
-          <div className="relative z-10 my-10 max-w-lg">
-            <div className="rounded-[2rem] border border-white/20 bg-white/10 p-8 backdrop-blur-sm xl:p-10">
-              <div className="flex items-start justify-between gap-6">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#B9D86B]">{admin ? 'Staff workspace' : 'Member portal'}</p>
-                  <h2 className="mt-3 font-serif text-4xl leading-tight text-white">Building resilient communities, together.</h2>
-                </div>
-                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#F4C95D] text-[#2E3192]"><Sprout size={27} /></div>
+          <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14">
+            <div className="flex items-center gap-2 text-sm font-semibold text-white/70">
+              <HeartHandshake size={18} className="text-[#7BC98C]" /> Community-powered progress
+            </div>
+
+            <div className="max-w-lg">
+              <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-white/5">
+                <Sprout size={28} className="text-[#F4C95D]" />
               </div>
-              <div className="mt-9 grid grid-cols-3 gap-3 border-t border-white/15 pt-6 text-white">
-                {['Access', 'Dignity', 'Opportunity'].map((item, index) => <div key={item}><span className="text-xs text-white/60">0{index + 1}</span><p className="mt-1 text-sm font-semibold">{item}</p></div>)}
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#7BC98C]">
+                {admin ? 'Staff workspace' : 'Member portal'}
+              </p>
+              <h2 className="mt-4 font-serif text-[2.6rem] leading-[1.12] text-white">
+                Building resilient communities, together.
+              </h2>
+              <p className="mt-5 max-w-md text-[15px] leading-7 text-white/60">
+                From microloans to shared knowledge, every step is designed around dignity, access and lasting opportunity.
+              </p>
+
+              <div className="mt-12 grid grid-cols-3 gap-6 border-t border-white/12 pt-8">
+                {['Access', 'Dignity', 'Opportunity'].map((item, index) => (
+                  <div key={item}>
+                    <span className="text-xs font-semibold text-white/40">0{index + 1}</span>
+                    <p className="mt-1.5 text-sm font-semibold text-white">{item}</p>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
 
-          <div className="relative z-10 flex items-center justify-between border-t border-white/15 pt-6 text-sm text-white/75"><span>Fantsuam Foundation</span><span className="flex items-center gap-2">Trusted care <ShieldCheck size={17} className="text-[#B9D86B]" /></span></div>
+            <div className="flex items-center justify-between border-t border-white/12 pt-6 text-sm text-white/60">
+              <span>Fantsuam Foundation</span>
+              <span className="flex items-center gap-2">
+                Trusted care <ShieldCheck size={17} className="text-[#7BC98C]" />
+              </span>
+            </div>
+          </div>
         </aside>
       </div>
     </main>
