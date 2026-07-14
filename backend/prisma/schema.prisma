@@ -264,6 +264,10 @@ model Customer {
 
   email String? @unique
 
+  // Customer portal credentials are deliberately separate from staff User
+  // credentials. Existing applicants can create an account with their email.
+  passwordHash String?
+
   gender Gender?
 
   maritalStatus MaritalStatus?

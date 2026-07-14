@@ -43,6 +43,7 @@ const STEP1_REQUIRED: { field: keyof ApplyFormData; label: string }[] = [
   { field: 'gender', label: 'Gender' },
   { field: 'dateOfBirth', label: 'Date of Birth' },
   { field: 'phone', label: 'Phone' },
+  { field: 'email', label: 'Email' },
   { field: 'addressLine1', label: 'Address Line 1' },
   { field: 'state', label: 'State' },
   { field: 'city', label: 'LGA' },
@@ -226,6 +227,10 @@ export default function ApplyPage() {
       setError('BVN must be exactly 11 digits.');
       return;
     }
+    if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      setError('Please enter a valid email address for your online account.');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -237,7 +242,7 @@ export default function ApplyPage() {
         gender: formData.gender,
         dateOfBirth: formData.dateOfBirth,
         phone: formData.phone,
-        email: formData.email || undefined,
+        email: formData.email,
         nin: formData.nin || undefined,
         bvn: formData.bvn || undefined,
         address: {
@@ -397,6 +402,12 @@ export default function ApplyPage() {
             <Image src="/logo.png" alt="MicroFinance logo" fill className="object-contain" priority />
           </div>
           <span className="truncate text-sm font-semibold text-foreground">MicroFinance</span>
+        </Link>
+        <Link
+          href="/account/sign-in"
+          className="shrink-0 rounded-lg border border-[#2E3192]/25 bg-[#F6F6FF] px-2.5 py-1.5 text-xs font-bold text-[#2E3192] shadow-sm transition hover:border-[#2E3192] hover:bg-white"
+        >
+          <span className="hidden sm:inline">Already applied? </span>Sign in
         </Link>
         <div className="hidden min-w-0 text-center sm:block">
           <h1 className="truncate text-base font-semibold text-foreground">{STEPS[currentStep - 1].label}</h1>

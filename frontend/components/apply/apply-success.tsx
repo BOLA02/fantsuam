@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { CheckCircle2, Copy, Check, MessageSquareText, ClipboardCheck, Banknote } from 'lucide-react';
+import { CheckCircle2, Copy, Check, MessageSquareText, ClipboardCheck, Banknote, ArrowRight, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -33,8 +33,8 @@ export function ApplySuccess({ applicationNumber }: Props) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <nav className="border-b border-border bg-card">
+    <div className="flex min-h-screen flex-col bg-[#F8F6F0]">
+      <nav className="border-b border-[#E6E0D3] bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center">
             <Link href="/" className="flex items-center gap-2">
@@ -55,7 +55,8 @@ export function ApplySuccess({ applicationNumber }: Props) {
             </div>
           </div>
 
-          <h1 className="text-center text-2xl font-bold text-foreground">Application Submitted</h1>
+          <p className="text-center text-xs font-bold uppercase tracking-[0.17em] text-[#1E7A34]">Application received</p>
+          <h1 className="mt-2 text-center font-serif text-3xl font-bold text-[#2E3192]">You’re one step closer.</h1>
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Your application has been received and is now under review.
           </p>
@@ -90,9 +91,14 @@ export function ApplySuccess({ applicationNumber }: Props) {
             ))}
           </div>
 
-          <Button asChild variant="outline" className="mt-8 w-full">
-            <Link href="/">Back Home</Link>
-          </Button>
+          <div className="mt-8 rounded-2xl border border-[#D8E7C7] bg-[#F3F9EC] p-4">
+            <p className="font-semibold text-[#2E3192]">Track every step online</p>
+            <p className="mt-1 text-sm leading-5 text-[#625E55]">Set up your account now to follow your application and, once approved, every repayment.</p>
+            <Button asChild className="mt-4 w-full bg-[#2E3192] hover:bg-[#23256F]">
+              <Link href="/account/sign-up">Set up my online account <ArrowRight size={16} /></Link>
+            </Button>
+          </div>
+          <Link href="/account/sign-in" className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#2E3192]/20 bg-white px-4 py-3 text-sm font-bold text-[#2E3192] transition hover:border-[#2E3192] hover:bg-[#F6F6FF]"><LogIn size={16} /> Already applied? Sign in to your account</Link>
         </div>
       </div>
     </div>

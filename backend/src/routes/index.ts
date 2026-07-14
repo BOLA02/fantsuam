@@ -19,6 +19,8 @@ import otpRoutes from "../modules/otp";
 import resumeRoutes from "../modules/resume";
 import searchRoutes from "../modules/search";
 import settingsRoutes from "../modules/settings";
+import customerAuthRoutes from "../modules/customer-auth/customer-auth.routes";
+import customerAccountRoutes from "../modules/customer-account/customer-account.routes";
 
 const router = Router();
 
@@ -38,6 +40,8 @@ router.use("/otp", otpRoutes);
 router.use("/resume", resumeRoutes);
 router.use("/search", searchRoutes);
 router.use("/settings", settingsRoutes);
+router.use("/customer-auth", customerAuthRoutes);
+router.use("/customer-account", customerAccountRoutes);
 
 
 export default router;

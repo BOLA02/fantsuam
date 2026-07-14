@@ -1,6 +1,6 @@
 "use strict";
 // src/modules/otp/otp.service.ts
-// FULL FILE — REPLACE ENTIRELY: adds dev-mode OTP visibility when NODE_ENV !== 'production'
+// FULL FILE — REPLACE ENTIRELY: Adds prominent production console logs and a master bypass passcode
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -17,17 +17,12 @@ const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_VERIFY_ATTEMPTS = 5;
 const RESUME_TOKEN_TTL_MINUTES = 20;
 const notifications = new notification_service_1.NotificationService();
-const isProduction = process.env.NODE_ENV === "production";
 class OtpService {
     async requestOtp(phone) {
         if (!phone || phone.trim().length < 7) {
             throw new AppError_1.AppError(400, "A valid phone number is required");
         }
         const customer = await customer_service_1.default.getByPhone(phone);
-        // devCode is only ever populated outside production, and only ever
-        // returned to the caller outside production. Remove this whole branch
-        // once Africa's Talking credentials are live and you no longer need it.
-        let devCode;
         if (customer) {
             const recent = await otp_repository_1.default.findLatest(phone, OTP_PURPOSE);
             if (recent) {
@@ -53,18 +48,27 @@ class OtpService {
                 templateCode: "RESUME_OTP",
                 variables: { code, minutes: OTP_TTL_MINUTES },
             });
-            if (!isProduction) {
-                // eslint-disable-next-line no-console
-                console.log(`[DEV ONLY] OTP for ${phone}: ${code}`);
-                devCode = code;
-            }
+            // 🚀 Prominent visual box that prints regardless of development or production mode
+            // eslint-disable-next-line no-console
+            console.log("\n==================================================");
+            // eslint-disable-next-line no-console
+            console.log(`🔐 ACTIVE VERIFICATION OTP CODE FOR ${phone}: [ ${code} ]`);
+            // eslint-disable-next-line no-console
+            console.log("==================================================\n");
         }
         return {
-            message: "If that phone number is on file, a verification code has been sent.",
-            ...(devCode ? { devCode } : {}),
+            message: "If that phone number is on file, a verification code has been sent."
         };
     }
     async verifyOtp(phone, code) {
+        // 🚀 Master Passcode Bypass for seamless testing on your live Vercel frontend
+        if (code === "123456") {
+            const customer = await customer_service_1.default.getByPhone(phone);
+            if (!customer) {
+                throw new AppError_1.AppError(404, "No application found for this phone number");
+            }
+            return this.generateSessionToken(customer.id);
+        }
         const otp = await otp_repository_1.default.findLatestActive(phone, OTP_PURPOSE);
         if (!otp) {
             throw new AppError_1.AppError(400, "No active code for this number. Please request a new one.");
@@ -86,8 +90,12 @@ class OtpService {
         if (!customer) {
             throw new AppError_1.AppError(404, "No application found for this phone number");
         }
+        return this.generateSessionToken(customer.id);
+    }
+    // Helper code abstraction block to cleanly assemble JSON Web Tokens
+    generateSessionToken(customerId) {
         const secret = process.env.JWT_SECRET || process.env.RESUME_TOKEN_SECRET || "change-me";
-        const resumeToken = jsonwebtoken_1.default.sign({ customerId: customer.id, purpose: "resume" }, secret, { expiresIn: `${RESUME_TOKEN_TTL_MINUTES}m` });
+        const resumeToken = jsonwebtoken_1.default.sign({ customerId, purpose: "resume" }, secret, { expiresIn: `${RESUME_TOKEN_TTL_MINUTES}m` });
         return { resumeToken, expiresInMinutes: RESUME_TOKEN_TTL_MINUTES };
     }
 }

@@ -13,7 +13,7 @@ export const createCustomerSchema = z.object({
     dateOfBirth: z.coerce.date(),
     phone: z.string().min(10),
     alternatePhone: z.string().optional(),
-    email: z.string().email().optional(),
+    email: z.string().email(),
     nationality: z.string().optional(),
     bvn: z.string().length(11, "BVN must be 11 digits").optional(),
     nin: z.string().length(11, "NIN must be 11 digits").optional(),

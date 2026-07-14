@@ -11,12 +11,35 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const routes_1 = __importDefault(require("./routes"));
 const error_middleware_1 = require("./middleware/error.middleware");
 const app = (0, express_1.default)();
-// 1. Global security configuration with explicit authorization credentials policies
+// 1. Global security configuration supporting multi-origin setups
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://fantsuam-ashy.vercel.app" // 🚀 Updated to your actual project domain
+];
 app.use((0, cors_1.default)({
-    origin: "http://localhost:3000", // 🔓 Allows your Next.js frontend port access
-    credentials: true, // 🔓 Permits Authorization headers & Cookie transfers
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, postman, or curl requests)
+        if (!origin) {
+            return callback(null, true);
+        }
+        // Check if the domain is explicitly listed in our array
+        const isAllowed = allowedOrigins.indexOf(origin) !== -1;
+        // Check if it's a dynamic preview or deployment subdomain of your project
+        const isVercelSubdomain = origin.startsWith("https://fantsuam-") && origin.endsWith(".vercel.app");
+        if (isAllowed || isVercelSubdomain) {
+            callback(null, true);
+        }
+        else {
+            // Log out the blocked origin to your Render dashboard logs for visual auditing
+            console.warn(`Blocked by CORS: ${origin}`);
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 }));
 app.use((0, helmet_1.default)());
 app.use((0, compression_1.default)());

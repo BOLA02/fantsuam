@@ -117,7 +117,7 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <FieldLabel icon={Mail}>Email</FieldLabel>
-            <Input type="email" value={formData.email} onChange={(e) => onChange('email', e.target.value)} placeholder="john@example.com" className={inputClass} />
+            <Input required type="email" value={formData.email} onChange={(e) => onChange('email', e.target.value)} placeholder="john@example.com" className={inputClass} />
           </div>
           <div>
             <FieldLabel icon={Phone}>Phone</FieldLabel>

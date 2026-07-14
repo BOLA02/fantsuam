@@ -1,9 +1,15 @@
-// app/page.tsx
-// FULL FILE — root now redirects straight to the apply flow.
-// The apply page itself is untouched at app/(public)/apply/page.tsx.
+'use client';
 
-import { redirect } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { hasCustomerSession } from '@/lib/customer-api';
 
 export default function RootPage() {
-  redirect('/apply');
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace(hasCustomerSession() ? '/account' : '/apply');
+  }, [router]);
+
+  return <main className="grid min-h-screen place-items-center text-sm text-muted-foreground">Loading…</main>;
 }
