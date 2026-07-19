@@ -27,14 +27,12 @@ class RepaymentRepository {
             ...(params.loanId ? { loanId: params.loanId } : {}),
             ...(params.search
                 ? {
-                    loan: {
-                        customer: {
-                            OR: [
-                                { firstName: { contains: params.search } },
-                                { lastName: { contains: params.search } },
-                            ],
-                        },
-                    },
+                    OR: [
+                        { receiptNumber: { contains: params.search } },
+                        { loan: { loanNumber: { contains: params.search } } },
+                        { loan: { customer: { firstName: { contains: params.search } } } },
+                        { loan: { customer: { lastName: { contains: params.search } } } },
+                    ],
                 }
                 : {}),
         };

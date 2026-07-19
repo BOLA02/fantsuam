@@ -12,9 +12,10 @@ const validate_middleware_1 = require("../../middleware/validate.middleware");
 const upload_middleware_1 = require("../../middleware/upload.middleware");
 const document_validation_1 = require("./document.validation");
 const client_1 = require("@prisma/client");
+const application_fee_middleware_1 = require("../../middleware/application-fee.middleware");
 const router = (0, express_1.Router)();
 // Public — created as part of the customer/loan application flow
-router.post("/", upload_middleware_1.upload.single("file"), (0, validate_middleware_1.validate)(document_validation_1.uploadDocumentSchema), document_controller_1.default.upload);
+router.post("/", application_fee_middleware_1.requireApplicationFee, upload_middleware_1.upload.single("file"), (0, validate_middleware_1.validate)(document_validation_1.uploadDocumentSchema), document_controller_1.default.upload);
 // Everything below requires staff authentication
 router.use(auth_middleware_1.authenticate);
 router.get("/", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN, client_1.UserRole.MANAGER, client_1.UserRole.LOAN_OFFICER, client_1.UserRole.CASHIER), document_controller_1.default.getAll);

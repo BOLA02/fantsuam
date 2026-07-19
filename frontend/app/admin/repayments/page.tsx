@@ -312,7 +312,7 @@ export default function RepaymentsPage() {
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Search by customer name..."
+            placeholder="Search by loan number, customer, or receipt..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -552,12 +552,12 @@ export default function RepaymentsPage() {
 
             <div className="p-4 space-y-4">
               {!selectedLoan ? (
-                <FormField label="Search Loan by Customer Name" required>
+                <FormField label="Loan Number" required>
                   <div className="relative">
                     <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       className="pl-9"
-                      placeholder="Type a customer name..."
+                      placeholder="e.g. LN-20260719-123456"
                       value={loanSearch}
                       onChange={(e) => setLoanSearch(e.target.value)}
                       autoFocus
@@ -597,11 +597,11 @@ export default function RepaymentsPage() {
                       })
                     ) : loanSearch ? (
                       <p className="p-4 text-xs text-muted-foreground text-center">
-                        No active loans match “{loanSearch}”.
+                        No active loan matches “{loanSearch}”.
                       </p>
                     ) : (
                       <p className="p-4 text-xs text-muted-foreground text-center">
-                        Start typing to find an active loan.
+                        Enter the loan number from the customer’s loan agreement or repayment notice.
                       </p>
                     )}
                   </div>

@@ -19,6 +19,17 @@ import {
 } from './api-types';
 
 export const api = {
+  applicationFee: {
+    getConfig: async () => apiClient<ApiResponse<{ enabled: boolean; amount: number; currency: 'NGN' }>>('/application-fee/config'),
+    initialize: async (email: string) =>
+      apiClient<ApiResponse<{ authorizationUrl: string }>>('/application-fee/initialize', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+    verify: async (reference: string) =>
+      apiClient<ApiResponse<{ token: string }>>(`/application-fee/verify/${encodeURIComponent(reference)}`),
+  },
+
   auth: {
     login: async (body: Record<string, string>) => {
       return apiClient<ApiResponse<{ token: string; user: any }>>('/auth/login', {

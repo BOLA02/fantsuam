@@ -19,12 +19,14 @@ import {
 } from "./loan-application.validation";
 
 import { UserRole } from "@prisma/client";
+import { requireApplicationFee } from "../../middleware/application-fee.middleware";
 
 const router = Router();
 
 // Public — customer submits application right after customer creation
 router.post(
   "/",
+  requireApplicationFee,
   validate(createLoanApplicationSchema),
   loanApplicationController.create
 );

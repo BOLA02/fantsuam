@@ -6,6 +6,8 @@ const DEFAULTS = {
   organizationName: "Fantsuam Foundation",
   email: "support@fantsuam.org",
   phone: "+234 803 000 0000",
+  applicationFeeEnabled: false,
+  applicationFeeAmount: 0,
 };
 
 class SettingsService {

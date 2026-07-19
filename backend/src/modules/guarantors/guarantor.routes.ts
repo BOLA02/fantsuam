@@ -15,12 +15,14 @@ import {
 } from "./guarantor.validation";
 
 import { UserRole } from "@prisma/client";
+import { requireApplicationFee } from "../../middleware/application-fee.middleware";
 
 const router = Router();
 
 // Public — created as part of the customer/loan application flow
 router.post(
   "/",
+  requireApplicationFee,
   validate(createGuarantorSchema),
   guarantorController.create
 );

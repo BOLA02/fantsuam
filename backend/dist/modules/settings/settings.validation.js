@@ -8,5 +8,7 @@ exports.updateSettingsSchema = zod_1.z.object({
         organizationName: zod_1.z.string().min(2).optional(),
         email: zod_1.z.string().email().optional(),
         phone: zod_1.z.string().min(10).optional(),
+        applicationFeeEnabled: zod_1.z.boolean().optional(),
+        applicationFeeAmount: zod_1.z.number().int().min(0).optional(),
     }),
 });

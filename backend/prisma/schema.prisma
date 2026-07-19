@@ -1039,7 +1039,26 @@ model OrganizationSettings {
   email            String
   phone            String
 
+  // Amounts are stored in kobo so payment calculations never use floats.
+  applicationFeeEnabled Boolean @default(false)
+  applicationFeeAmount  Int     @default(0)
+
   updatedAt DateTime @updatedAt
+}
+
+model ApplicationFeePayment {
+  id          String   @id @default(uuid())
+  reference   String   @unique
+  email       String
+  amount      Int
+  status      String   @default("PENDING")
+  paystackId  String?  @unique
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
 }
 
 

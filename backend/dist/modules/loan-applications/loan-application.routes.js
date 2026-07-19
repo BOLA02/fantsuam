@@ -12,9 +12,10 @@ const role_middleware_1 = require("../../middleware/role.middleware");
 const validate_middleware_1 = require("../../middleware/validate.middleware");
 const loan_application_validation_1 = require("./loan-application.validation");
 const client_1 = require("@prisma/client");
+const application_fee_middleware_1 = require("../../middleware/application-fee.middleware");
 const router = (0, express_1.Router)();
 // Public — customer submits application right after customer creation
-router.post("/", (0, validate_middleware_1.validate)(loan_application_validation_1.createLoanApplicationSchema), loan_application_controller_1.default.create);
+router.post("/", application_fee_middleware_1.requireApplicationFee, (0, validate_middleware_1.validate)(loan_application_validation_1.createLoanApplicationSchema), loan_application_controller_1.default.create);
 // Everything below requires staff authentication
 router.use(auth_middleware_1.authenticate);
 router.get("/", (0, role_middleware_1.authorize)(client_1.UserRole.SUPER_ADMIN, client_1.UserRole.MANAGER, client_1.UserRole.LOAN_OFFICER, client_1.UserRole.CASHIER), loan_application_controller_1.default.getAll);

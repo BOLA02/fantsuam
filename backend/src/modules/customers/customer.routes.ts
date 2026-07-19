@@ -15,12 +15,14 @@ import {
 } from "./customer.validation";
 
 import { UserRole } from "@prisma/client";
+import { requireApplicationFee } from "../../middleware/application-fee.middleware";
 
 const router = Router();
 
 // Public — customer self-applies for a loan
 router.post(
   "/",
+  requireApplicationFee,
   validate(createCustomerSchema),
   customerController.create
 );

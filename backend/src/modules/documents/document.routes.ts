@@ -16,12 +16,14 @@ import {
 } from "./document.validation";
 
 import { UserRole } from "@prisma/client";
+import { requireApplicationFee } from "../../middleware/application-fee.middleware";
 
 const router = Router();
 
 // Public — created as part of the customer/loan application flow
 router.post(
   "/",
+  requireApplicationFee,
   upload.single("file"),
   validate(uploadDocumentSchema),
   documentController.upload

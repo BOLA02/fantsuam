@@ -39,7 +39,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Application-Fee-Token"],
     preflightContinue: false, 
     optionsSuccessStatus: 204
   })

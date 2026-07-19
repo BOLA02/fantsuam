@@ -21,6 +21,7 @@ import searchRoutes from "../modules/search";
 import settingsRoutes from "../modules/settings";
 import customerAuthRoutes from "../modules/customer-auth/customer-auth.routes";
 import customerAccountRoutes from "../modules/customer-account/customer-account.routes";
+import applicationFeeRoutes from "../modules/application-fees/application-fee.routes";
 
 const router = Router();
 
@@ -42,6 +43,7 @@ router.use("/search", searchRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/customer-auth", customerAuthRoutes);
 router.use("/customer-account", customerAccountRoutes);
+router.use("/application-fee", applicationFeeRoutes);
 
 
 export default router;

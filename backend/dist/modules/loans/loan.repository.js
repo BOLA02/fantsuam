@@ -22,12 +22,11 @@ class LoanRepository {
             ...(params.status ? { status: params.status } : {}),
             ...(params.search
                 ? {
-                    customer: {
-                        OR: [
-                            { firstName: { contains: params.search } },
-                            { lastName: { contains: params.search } },
-                        ],
-                    },
+                    OR: [
+                        { loanNumber: { contains: params.search } },
+                        { customer: { firstName: { contains: params.search } } },
+                        { customer: { lastName: { contains: params.search } } },
+                    ],
                 }
                 : {}),
         };

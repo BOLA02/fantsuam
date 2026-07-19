@@ -82,6 +82,7 @@ export default function ApplyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [feeGateChecking, setFeeGateChecking] = useState(true);
 
   // Resume flow state
   const [showResumeBanner, setShowResumeBanner] = useState(false);
@@ -95,6 +96,18 @@ export default function ApplyPage() {
       .then((res) => setProducts(res.data.filter((p) => p.isActive)))
       .catch((err) => setProductsError(err.message))
       .finally(() => setProductsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    api.applicationFee.getConfig()
+      .then((res) => {
+        if (res.data?.enabled && !localStorage.getItem('mf_application_fee_token')) {
+          window.location.replace('/application-fee');
+          return;
+        }
+        setFeeGateChecking(false);
+      })
+      .catch(() => setFeeGateChecking(false));
   }, []);
 
   // Detect saved progress on mount — this is a HINT only, never trusted as auth.
@@ -378,6 +391,10 @@ export default function ApplyPage() {
 
   if (done && formData.applicationNumber) {
     return <ApplySuccess applicationNumber={formData.applicationNumber} />;
+  }
+
+  if (feeGateChecking) {
+    return <main className="grid min-h-screen place-items-center text-sm text-muted-foreground">Preparing your application…</main>;
   }
 
   return (

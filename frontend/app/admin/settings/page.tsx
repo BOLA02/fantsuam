@@ -17,6 +17,8 @@ interface OrganizationSettings {
   organizationName: string;
   email: string;
   phone: string;
+  applicationFeeEnabled: boolean;
+  applicationFeeAmount: number;
 }
 
 export default function SettingsPage() {
@@ -46,7 +48,12 @@ export default function SettingsPage() {
   }, []);
 
   const handleFieldChange = (field: string, value: string) => {
-    setSettings((prev) => (prev ? { ...prev, [field]: value } : prev));
+    setSettings((prev) => {
+      if (!prev) return prev;
+      if (field === 'applicationFeeEnabled') return { ...prev, applicationFeeEnabled: value === 'true' };
+      if (field === 'applicationFeeAmount') return { ...prev, applicationFeeAmount: Math.max(0, Math.round(Number(value || 0) * 100)) };
+      return { ...prev, [field]: value };
+    });
   };
 
   const handlePolicySave = async () => {
@@ -64,6 +71,8 @@ export default function SettingsPage() {
             organizationName: settings.organizationName,
             email: settings.email,
             phone: settings.phone,
+            applicationFeeEnabled: settings.applicationFeeEnabled,
+            applicationFeeAmount: settings.applicationFeeAmount,
           }),
         }
       );
@@ -98,6 +107,8 @@ export default function SettingsPage() {
           organizationName={settings.organizationName}
           email={settings.email}
           phone={settings.phone}
+          applicationFeeEnabled={settings.applicationFeeEnabled}
+          applicationFeeAmount={settings.applicationFeeAmount}
           onFieldChange={handleFieldChange}
         />
       )}
