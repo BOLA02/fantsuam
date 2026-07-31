@@ -59,41 +59,14 @@ export default function ApplicationFeePage() {
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <div className="mx-auto grid min-h-screen max-w-5xl grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
+    <main className="min-h-screen bg-background">
+      <div className="grid min-h-screen w-full grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
         {/* LEFT — context & trust panel */}
-        <div className="hidden flex-col justify-between border-r border-border bg-card px-10 py-12 lg:flex">
+        <div className="hidden flex-col justify-between bg-background px-10 py-12 lg:flex">
           <div>
-            <button
-              onClick={() => router.push('/apply')}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
-            >
-              <ArrowLeft size={15} />
-              Back to application
-            </button>
-
-            {/* Step indicator */}
-            <div className="mt-10 flex items-center gap-2">
-              {[1, 2, 3].map((step) => (
-                <div key={step} className="flex items-center gap-2">
-                  <div
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                      step < 3
-                        ? 'bg-primary/15 text-primary'
-                        : 'bg-primary text-primary-foreground'
-                    }`}
-                  >
-                    {step < 3 ? <CircleCheck size={14} /> : step}
-                  </div>
-                  {step < 3 && <div className="h-px w-6 bg-border" />}
-                </div>
-              ))}
-              <span className="ml-2 text-xs font-medium text-muted-foreground">Step 3 of 3 · Payment</span>
-            </div>
-
-            <h1 className="mt-8 text-3xl font-semibold leading-tight tracking-tight">
-              You're almost done.
-            </h1>
+           
+            
+           
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
               A one-time application fee is required to submit your loan request for review. This covers
               underwriting and verification so we can get you a decision fast.
@@ -128,7 +101,7 @@ export default function ApplicationFeePage() {
         </div>
 
         {/* RIGHT — payment form */}
-        <div className="flex items-center justify-center px-4 py-10 sm:px-8">
+        <div className="flex items-center justify-center bg-background px-4 py-10 sm:px-8">
           <form onSubmit={submit} className="w-full max-w-sm">
             {/* Mobile-only back + step */}
             <div className="mb-6 flex items-center justify-between lg:hidden">
