@@ -12,7 +12,8 @@ const app = express();
 // 1. Global security configuration supporting multi-origin setups
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://fantsuam-ashy.vercel.app" // 🚀 Updated to your actual project domain
+  "https://fantsuam-ashy.vercel.app",
+  'https://microfinance.fantsuam.com.ng'// 🚀 Updated to your actual project domain
 ];
 
 app.use(
