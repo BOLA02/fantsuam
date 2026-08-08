@@ -23,4 +23,10 @@ export class LoanController {
     const result = await this.service.disburse(id, req.body, disbursedById);
     return res.status(200).json(ApiResponse.success(result, 'Loan disbursed successfully'));
   };
+
+getMine = async (req: Request, res: Response) => {
+    const customerId = (req as any).customer.id;
+    const result = await this.service.getAllLoans({ customerId });
+    return res.status(200).json(ApiResponse.success(result, 'Loans retrieved successfully'));
+  };
 }

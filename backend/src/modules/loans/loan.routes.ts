@@ -6,10 +6,11 @@ import { authorize } from '../../middleware/role.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { listLoansSchema, disburseLoanSchema } from './loan.validation';
 import { UserRole } from '@prisma/client';
-
+import { authenticateCustomer } from '../../middleware/customer-auth.middleware';
 const router = Router();
 const controller = new LoanController();
 
+router.get('/me', authenticateCustomer, asyncHandler(controller.getMine));
 router.use(authenticate);
 
 router.get('/', validate(listLoansSchema), asyncHandler(controller.getAll));

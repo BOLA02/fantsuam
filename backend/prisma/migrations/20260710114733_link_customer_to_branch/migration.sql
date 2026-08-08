@@ -5,7 +5,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `customer` ADD COLUMN `branchId` VARCHAR(191) NOT NULL;
+ALTER TABLE `Customer` ADD COLUMN `branchId` VARCHAR(191) NOT NULL;
 
 -- AddForeignKey
 ALTER TABLE `Customer` ADD CONSTRAINT `Customer_branchId_fkey` FOREIGN KEY (`branchId`) REFERENCES `Branch`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

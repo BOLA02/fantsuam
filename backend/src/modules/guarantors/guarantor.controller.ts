@@ -77,6 +77,36 @@ class GuarantorController {
       next(error);
     }
   }
-}
 
+
+async createForCustomer(req: Request, res: Response, next: NextFunction) {
+    try {
+      const guarantor = await guarantorService.create({
+        ...req.body,
+        customerId: req.customer!.id,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Guarantor added successfully",
+        data: guarantor,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMine(req: Request, res: Response, next: NextFunction) {
+    try {
+      const guarantors = await guarantorService.getAll(req.customer!.id);
+
+      res.status(200).json({
+        success: true,
+        data: guarantors,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+}
 export default new GuarantorController();

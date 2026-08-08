@@ -11,3 +11,10 @@ export interface ListSmsQuery {
   page?: number;
   pageSize?: number;
 }
+
+export interface SendEmailInput {
+  customerId?: string;
+  email: string;
+  templateCode: string;
+  variables: Record<string, string | number>;
+}

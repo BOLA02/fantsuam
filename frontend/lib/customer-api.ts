@@ -17,3 +17,15 @@ export async function customerApi<T>(endpoint: string, options: RequestInit = {}
   if (!response.ok) throw new Error(payload.message || 'Request failed.');
   return payload;
 }
+export type LoanProductOption = { id: string; name: string; minimumAmount: string | number; maximumAmount: string | number; maximumDuration: number };
+
+export async function getLoanProducts() {
+  return customerApi<{ data: LoanProductOption[] }>('/loan-products');
+}
+
+export async function applyForLoan(payload: { loanProductId: string; requestedAmount: number; purpose: string; durationMonths: number }) {
+  return customerApi<{ data: unknown }>('/loan-applications/me', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

@@ -6,7 +6,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `repayment` ADD COLUMN `confirmationStatus` ENUM('PENDING_VERIFICATION', 'CONFIRMED') NOT NULL,
+ALTER TABLE `Repayment` ADD COLUMN `confirmationStatus` ENUM('PENDING_VERIFICATION', 'CONFIRMED') NOT NULL,
     ADD COLUMN `confirmedAt` DATETIME(3) NULL,
     ADD COLUMN `confirmedById` VARCHAR(191) NULL,
     ADD COLUMN `interestApplied` DECIMAL(15, 2) NOT NULL DEFAULT 0,
@@ -14,7 +14,7 @@ ALTER TABLE `repayment` ADD COLUMN `confirmationStatus` ENUM('PENDING_VERIFICATI
     ADD COLUMN `transactionGroupId` VARCHAR(191) NOT NULL;
 
 -- AlterTable
-ALTER TABLE `repaymentschedule` ADD COLUMN `paidInterest` DECIMAL(15, 2) NOT NULL DEFAULT 0,
+ALTER TABLE `RepaymentSchedule` ADD COLUMN `paidInterest` DECIMAL(15, 2) NOT NULL DEFAULT 0,
     ADD COLUMN `paidPrincipal` DECIMAL(15, 2) NOT NULL DEFAULT 0;
 
 -- CreateIndex

@@ -15,9 +15,10 @@ export class LoanRepository {
     },
   };
 
-  async findAll(params: { search?: string; status?: string }) {
+  async findAll(params: { search?: string; status?: string; customerId?: string }) {
     const where: Prisma.LoanWhereInput = {
       deletedAt: null,
+      ...(params.customerId ? { customerId: params.customerId } : {}),
       ...(params.status ? { status: params.status as any } : {}),
       ...(params.search
         ? {

@@ -294,6 +294,7 @@ model Customer {
   notifications Notification[]
 
   smsLogs SmsLog[]
+  emailLogs EmailLog[]
 
   branchId       String?
   branch         Branch?  @relation(fields: [branchId], references: [id])
@@ -1090,4 +1091,46 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+
+model EmailTemplate {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  name String
+
+  subject String
+
+  bodyHtml String @db.Text
+
+  emailLogs EmailLog[]
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmailLog {
+  id                String       @id @default(uuid())
+  customerId        String?
+  email             String
+  subject           String
+  emailStatus       EmailStatus
+  templateId        String?
+  providerMessageId String?
+  sentAt            DateTime?
+  customer          Customer?    @relation(fields: [customerId], references: [id])
+  template          EmailTemplate? @relation(fields: [templateId], references: [id])
+  createdAt         DateTime     @default(now())
+
+  @@index([customerId])
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
 }

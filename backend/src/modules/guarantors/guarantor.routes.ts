@@ -7,7 +7,7 @@ import guarantorController from "./guarantor.controller";
 import { authenticate } from "../../middleware/auth.middleware";
 import { authorize } from "../../middleware/role.middleware";
 import { validate } from "../../middleware/validate.middleware";
-
+import { authenticateCustomer } from "../../middleware/customer-auth.middleware";
 import {
   createGuarantorSchema,
   updateGuarantorSchema,
@@ -19,6 +19,19 @@ import { requireApplicationFee } from "../../middleware/application-fee.middlewa
 
 const router = Router();
 
+
+router.post(
+  "/me",
+  authenticateCustomer,
+  validate(createGuarantorSchema),
+  guarantorController.createForCustomer
+);
+
+router.get(
+  "/me",
+  authenticateCustomer,
+  guarantorController.getMine
+);
 // Public — created as part of the customer/loan application flow
 router.post(
   "/",

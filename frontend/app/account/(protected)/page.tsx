@@ -3,8 +3,8 @@
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, CalendarDays, CircleDollarSign, CreditCard, FileText, LogOut, WalletCards } from 'lucide-react';
-import { clearCustomerSession, customerApi } from '@/lib/customer-api';
+import { ArrowUpRight, CalendarDays, CircleDollarSign, CreditCard, FileText, LogOut, Plus, WalletCards, X } from 'lucide-react';
+import { clearCustomerSession, customerApi, getLoanProducts, applyForLoan, type LoanProductOption } from '@/lib/customer-api';
 
 type Loan = { id: string; loanNumber: string; status: string; approvedAmount: string | number; outstandingBalance: string | number; repaymentFrequency: string; loanProduct: { name: string }; schedules: { dueDate: string; balance: string | number }[] };
 type Repayment = { id: string; receiptNumber: string; amount: string | number; paymentDate: string; confirmationStatus: string; loan: { loanNumber: string } };
@@ -12,11 +12,140 @@ const money = (value: string | number) => new Intl.NumberFormat('en-NG', { style
 const label = (value: string) => value.replaceAll('_', ' ');
 
 export default function CustomerAccountPage() {
-  const router = useRouter(); const [loans, setLoans] = useState<Loan[]>([]); const [repayments, setRepayments] = useState<Repayment[]>([]); const [error, setError] = useState('');
-  useEffect(() => { Promise.all([customerApi<{ data: Loan[] }>('/customer-account/loans'), customerApi<{ data: Repayment[] }>('/customer-account/repayments')]).then(([l, r]) => { setLoans(l.data); setRepayments(r.data); }).catch((err) => { setError(err.message || 'Unable to load your account.'); if (/session|sign-in|expired/i.test(err.message)) { clearCustomerSession(); router.replace('/account/sign-in'); } }); }, [router]);
-  const activeLoan = loans[0]; const nextPayment = activeLoan?.schedules[0]; const paid = useMemo(() => repayments.reduce((sum, payment) => sum + Number(payment.amount), 0), [repayments]);
+  const router = useRouter();
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [repayments, setRepayments] = useState<Repayment[]>([]);
+  const [error, setError] = useState('');
+  const [showApply, setShowApply] = useState(false);
+
+  const loadAccount = () => {
+    Promise.all([customerApi<{ data: Loan[] }>('/customer-account/loans'), customerApi<{ data: Repayment[] }>('/customer-account/repayments')])
+      .then(([l, r]) => { setLoans(l.data); setRepayments(r.data); })
+      .catch((err) => { setError(err.message || 'Unable to load your account.'); if (/session|sign-in|expired/i.test(err.message)) { clearCustomerSession(); router.replace('/account/sign-in'); } });
+  };
+
+  useEffect(() => { loadAccount(); }, [router]);
+
+  const activeLoan = loans[0];
+  const nextPayment = activeLoan?.schedules[0];
+  const paid = useMemo(() => repayments.reduce((sum, payment) => sum + Number(payment.amount), 0), [repayments]);
   const logout = () => { clearCustomerSession(); router.replace('/account/sign-in'); };
-  return <main className="min-h-screen bg-[#F8F6F0] text-[#2B2B28]"><header className="border-b border-[#E6E0D3] bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6"><div className="flex items-center gap-3"><Image src="/LOGO.jpg" width={42} height={42} alt="Fantsuam Foundation" className="rounded-xl border border-[#E5DDCB]" /><div><p className="font-serif text-lg leading-none text-[#2E3192]">Fantsuam Foundation</p><p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1E7A34]">Member portal</p></div></div><button onClick={logout} className="flex items-center gap-2 rounded-xl border border-[#DDD5C6] px-3 py-2 text-sm font-semibold text-[#514E45] transition hover:border-[#2E3192] hover:text-[#2E3192]"><LogOut size={16} /> <span className="hidden sm:inline">Sign out</span></button></div></header><div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12"><section className="relative overflow-hidden rounded-[1.75rem] bg-[#2E3192] px-6 py-8 text-white shadow-[0_20px_45px_rgba(46,49,146,0.22)] sm:px-9 sm:py-10"><div className="absolute -right-20 -top-24 h-64 w-64 rounded-full border-[34px] border-[#1E7A34]/80" /><div className="absolute bottom-0 right-20 h-32 w-32 rounded-full bg-[#F4C95D]/20 blur-2xl" /><div className="relative max-w-2xl"><p className="text-xs font-bold uppercase tracking-[0.19em] text-[#B9D86B]">Your financial journey</p><h1 className="mt-3 font-serif text-3xl leading-tight sm:text-4xl">Your loan details, clear and close at hand.</h1><p className="mt-4 max-w-xl text-sm leading-6 text-white/75">Follow your application, know what is due next, and keep a complete record of payments in one secure place.</p></div></section>{error && <p role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</p>}<section className="-mt-3 relative mx-3 grid gap-3 sm:grid-cols-3 lg:mx-6"><Metric icon={WalletCards} label="Outstanding balance" value={activeLoan ? money(activeLoan.outstandingBalance) : '—'} /><Metric icon={CalendarDays} label="Next payment" value={nextPayment ? money(nextPayment.balance) : '—'} /><Metric icon={CircleDollarSign} label="Payments recorded" value={money(paid)} /></section><section className="mt-10"><div className="mb-4 flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1E7A34]">Loan overview</p><h2 className="mt-1 font-serif text-2xl text-[#2E3192]">My loans</h2></div><span className="text-sm text-[#625E55]">{loans.length} record{loans.length === 1 ? '' : 's'}</span></div>{loans.length === 0 ? <EmptyState icon={FileText} title="No loan information yet" text="Your loan details will appear here once your application has been processed." /> : <div className="grid gap-5 lg:grid-cols-2">{loans.map((loan) => <article key={loan.id} className="rounded-[1.5rem] border border-[#E6E0D3] bg-white p-6 shadow-sm"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#777266]">{loan.loanNumber}</p><h3 className="mt-2 text-lg font-bold text-[#2E3192]">{loan.loanProduct.name}</h3></div><span className="rounded-full bg-[#EAF5E2] px-3 py-1.5 text-xs font-bold text-[#1E7A34]">{label(loan.status)}</span></div><div className="mt-6 grid grid-cols-2 gap-5 border-y border-[#EEE9DF] py-5"><div><p className="text-xs text-[#777266]">Approved amount</p><p className="mt-1 font-serif text-xl text-[#2B2B28]">{money(loan.approvedAmount)}</p></div><div><p className="text-xs text-[#777266]">Outstanding</p><p className="mt-1 font-serif text-xl text-[#2B2B28]">{money(loan.outstandingBalance)}</p></div></div><div className="mt-5 flex items-center justify-between text-sm"><span className="text-[#625E55]">{label(loan.repaymentFrequency)} repayment</span>{loan.schedules[0] && <span className="font-semibold text-[#2E3192]">Due {new Date(loan.schedules[0].dueDate).toLocaleDateString()}</span>}</div></article>)}</div>}</section><section className="mt-12"><div className="mb-4"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1E7A34]">Transaction record</p><h2 className="mt-1 font-serif text-2xl text-[#2E3192]">Payment history</h2></div>{repayments.length === 0 ? <EmptyState icon={CreditCard} title="No payments recorded" text="When a repayment is confirmed, its receipt will appear here." /> : <div className="overflow-hidden rounded-[1.5rem] border border-[#E6E0D3] bg-white"><div className="hidden grid-cols-[1.2fr_1fr_1fr_1fr] gap-4 border-b border-[#EEE9DF] bg-[#FCFAF5] px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#777266] sm:grid"><span>Receipt</span><span>Date</span><span>Amount</span><span>Status</span></div>{repayments.map((payment) => <div key={payment.id} className="grid gap-2 border-b border-[#F0ECE4] px-6 py-5 last:border-0 sm:grid-cols-[1.2fr_1fr_1fr_1fr] sm:items-center"><div><p className="font-semibold text-[#2E3192]">{payment.receiptNumber}</p><p className="mt-1 text-xs text-[#777266]">{payment.loan.loanNumber}</p></div><p className="text-sm text-[#625E55]">{new Date(payment.paymentDate).toLocaleDateString()}</p><p className="font-bold text-[#2B2B28]">{money(payment.amount)}</p><span className="inline-flex w-fit rounded-full bg-[#F3F9EC] px-3 py-1 text-xs font-bold text-[#1E7A34]">{label(payment.confirmationStatus)}</span></div>)}</div>}</section></div></main>;
+
+  return <main className="min-h-screen bg-[#F8F6F0] text-[#2B2B28]">
+    <header className="border-b border-[#E6E0D3] bg-white">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
+        <div className="flex items-center gap-3">
+          <Image src="/LOGO.jpg" width={42} height={42} alt="Fantsuam Foundation" className="rounded-xl border border-[#E5DDCB]" />
+          <div><p className="font-serif text-lg leading-none text-[#2E3192]">Fantsuam Foundation</p><p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1E7A34]">Member portal</p></div>
+        </div>
+        <button onClick={logout} className="flex items-center gap-2 rounded-xl border border-[#DDD5C6] px-3 py-2 text-sm font-semibold text-[#514E45] transition hover:border-[#2E3192] hover:text-[#2E3192]"><LogOut size={16} /> <span className="hidden sm:inline">Sign out</span></button>
+      </div>
+    </header>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+      <section className="relative overflow-hidden rounded-[1.75rem] bg-[#2E3192] px-6 py-8 text-white shadow-[0_20px_45px_rgba(46,49,146,0.22)] sm:px-9 sm:py-10">
+        <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full border-[34px] border-[#1E7A34]/80" />
+        <div className="absolute bottom-0 right-20 h-32 w-32 rounded-full bg-[#F4C95D]/20 blur-2xl" />
+        <div className="relative max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-[0.19em] text-[#B9D86B]">Your financial journey</p>
+          <h1 className="mt-3 font-serif text-3xl leading-tight sm:text-4xl">Your loan details, clear and close at hand.</h1>
+          <p className="mt-4 max-w-xl text-sm leading-6 text-white/75">Follow your application, know what is due next, and keep a complete record of payments in one secure place.</p>
+          <button onClick={() => setShowApply(true)} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#F4C95D] px-5 py-3 text-sm font-bold text-[#2E3192] transition hover:brightness-105">
+            <Plus size={16} /> Re-apply for a loan
+          </button>
+        </div>
+      </section>
+
+      {error && <p role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</p>}
+
+      <section className="-mt-3 relative mx-3 grid gap-3 sm:grid-cols-3 lg:mx-6">
+        <Metric icon={WalletCards} label="Outstanding balance" value={activeLoan ? money(activeLoan.outstandingBalance) : '—'} />
+        <Metric icon={CalendarDays} label="Next payment" value={nextPayment ? money(nextPayment.balance) : '—'} />
+        <Metric icon={CircleDollarSign} label="Payments recorded" value={money(paid)} />
+      </section>
+
+      <section className="mt-10">
+        <div className="mb-4 flex items-end justify-between">
+          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1E7A34]">Loan overview</p><h2 className="mt-1 font-serif text-2xl text-[#2E3192]">My loans</h2></div>
+          <span className="text-sm text-[#625E55]">{loans.length} record{loans.length === 1 ? '' : 's'}</span>
+        </div>
+        {loans.length === 0 ? <EmptyState icon={FileText} title="No loan information yet" text="Your loan details will appear here once your application has been processed." /> : <div className="grid gap-5 lg:grid-cols-2">{loans.map((loan) => <article key={loan.id} className="rounded-[1.5rem] border border-[#E6E0D3] bg-white p-6 shadow-sm"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#777266]">{loan.loanNumber}</p><h3 className="mt-2 text-lg font-bold text-[#2E3192]">{loan.loanProduct.name}</h3></div><span className="rounded-full bg-[#EAF5E2] px-3 py-1.5 text-xs font-bold text-[#1E7A34]">{label(loan.status)}</span></div><div className="mt-6 grid grid-cols-2 gap-5 border-y border-[#EEE9DF] py-5"><div><p className="text-xs text-[#777266]">Approved amount</p><p className="mt-1 font-serif text-xl text-[#2B2B28]">{money(loan.approvedAmount)}</p></div><div><p className="text-xs text-[#777266]">Outstanding</p><p className="mt-1 font-serif text-xl text-[#2B2B28]">{money(loan.outstandingBalance)}</p></div></div><div className="mt-5 flex items-center justify-between text-sm"><span className="text-[#625E55]">{label(loan.repaymentFrequency)} repayment</span>{loan.schedules[0] && <span className="font-semibold text-[#2E3192]">Due {new Date(loan.schedules[0].dueDate).toLocaleDateString()}</span>}</div></article>)}</div>}
+      </section>
+
+      <section className="mt-12">
+        <div className="mb-4"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1E7A34]">Transaction record</p><h2 className="mt-1 font-serif text-2xl text-[#2E3192]">Payment history</h2></div>
+        {repayments.length === 0 ? <EmptyState icon={CreditCard} title="No payments recorded" text="When a repayment is confirmed, its receipt will appear here." /> : <div className="overflow-hidden rounded-[1.5rem] border border-[#E6E0D3] bg-white"><div className="hidden grid-cols-[1.2fr_1fr_1fr_1fr] gap-4 border-b border-[#EEE9DF] bg-[#FCFAF5] px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#777266] sm:grid"><span>Receipt</span><span>Date</span><span>Amount</span><span>Status</span></div>{repayments.map((payment) => <div key={payment.id} className="grid gap-2 border-b border-[#F0ECE4] px-6 py-5 last:border-0 sm:grid-cols-[1.2fr_1fr_1fr_1fr] sm:items-center"><div><p className="font-semibold text-[#2E3192]">{payment.receiptNumber}</p><p className="mt-1 text-xs text-[#777266]">{payment.loan.loanNumber}</p></div><p className="text-sm text-[#625E55]">{new Date(payment.paymentDate).toLocaleDateString()}</p><p className="font-bold text-[#2B2B28]">{money(payment.amount)}</p><span className="inline-flex w-fit rounded-full bg-[#F3F9EC] px-3 py-1 text-xs font-bold text-[#1E7A34]">{label(payment.confirmationStatus)}</span></div>)}</div>}
+      </section>
+    </div>
+
+    {showApply && <ReapplyModal onClose={() => setShowApply(false)} onSuccess={() => { setShowApply(false); loadAccount(); }} />}
+  </main>;
+}
+
+function ReapplyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [products, setProducts] = useState<LoanProductOption[]>([]);
+  const [loanProductId, setLoanProductId] = useState('');
+  const [requestedAmount, setRequestedAmount] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [durationMonths, setDurationMonths] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    getLoanProducts()
+      .then((res) => setProducts(res.data))
+      .catch(() => setFormError('Unable to load loan products. Please try again.'));
+  }, []);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    if (!loanProductId || !requestedAmount || !purpose || !durationMonths) { setFormError('Please fill in every field.'); return; }
+    setSubmitting(true);
+    try {
+      await applyForLoan({ loanProductId, requestedAmount: Number(requestedAmount), purpose, durationMonths: Number(durationMonths) });
+      onSuccess();
+    } catch (err: any) {
+      setFormError(err.message || 'Unable to submit your application. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="w-full max-w-lg rounded-[1.5rem] bg-white p-6 shadow-xl sm:p-8">
+      <div className="flex items-start justify-between">
+        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1E7A34]">New application</p><h2 className="mt-1 font-serif text-2xl text-[#2E3192]">Re-apply for a loan</h2></div>
+        <button onClick={onClose} className="rounded-full p-1.5 text-[#777266] hover:bg-[#F4F1E9]"><X size={20} /></button>
+      </div>
+
+      {formError && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{formError}</p>}
+
+      <form onSubmit={submit} className="mt-6 space-y-4">
+        <div>
+          <label className="text-xs font-bold uppercase tracking-[0.1em] text-[#625E55]">Loan product</label>
+          <select value={loanProductId} onChange={(e) => setLoanProductId(e.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDD5C6] px-3 py-2.5 text-sm focus:border-[#2E3192] focus:outline-none">
+            <option value="">Select a loan product</option>
+            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-bold uppercase tracking-[0.1em] text-[#625E55]">Amount requested (₦)</label>
+          <input type="number" min={1} value={requestedAmount} onChange={(e) => setRequestedAmount(e.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDD5C6] px-3 py-2.5 text-sm focus:border-[#2E3192] focus:outline-none" placeholder="e.g. 50000" />
+        </div>
+        <div>
+          <label className="text-xs font-bold uppercase tracking-[0.1em] text-[#625E55]">Duration (months)</label>
+          <input type="number" min={1} value={durationMonths} onChange={(e) => setDurationMonths(e.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDD5C6] px-3 py-2.5 text-sm focus:border-[#2E3192] focus:outline-none" placeholder="e.g. 3" />
+        </div>
+        <div>
+          <label className="text-xs font-bold uppercase tracking-[0.1em] text-[#625E55]">Purpose</label>
+          <textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} rows={3} className="mt-1.5 w-full rounded-xl border border-[#DDD5C6] px-3 py-2.5 text-sm focus:border-[#2E3192] focus:outline-none" placeholder="What is this loan for?" />
+        </div>
+        <button type="submit" disabled={submitting} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E3192] px-5 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60">
+          {submitting ? 'Submitting…' : 'Submit application'} {!submitting && <ArrowUpRight size={16} />}
+        </button>
+      </form>
+    </div>
+  </div>;
 }
 
 function Metric({ icon: Icon, label, value }: { icon: typeof WalletCards; label: string; value: string }) { return <div className="rounded-2xl border border-[#E6E0D3] bg-white p-4 shadow-sm"><div className="flex items-center gap-2 text-[#1E7A34]"><Icon size={17} /><span className="text-xs font-bold uppercase tracking-[0.1em]">{label}</span></div><p className="mt-3 font-serif text-2xl text-[#2E3192]">{value}</p></div>; }

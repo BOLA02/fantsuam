@@ -4,7 +4,7 @@
 import { Router } from "express";
 
 import customerController from "./customer.controller";
-
+import { authenticateCustomer } from "../../middleware/customer-auth.middleware";
 import { authenticate } from "../../middleware/auth.middleware";
 import { authorize } from "../../middleware/role.middleware";
 import { validate } from "../../middleware/validate.middleware";
@@ -19,6 +19,7 @@ import { requireApplicationFee } from "../../middleware/application-fee.middlewa
 
 const router = Router();
 
+router.get("/me", authenticateCustomer, customerController.getMe);
 // Public — customer self-applies for a loan
 router.post(
   "/",

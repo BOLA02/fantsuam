@@ -223,7 +223,7 @@ async disburse(loanId: string, payload: DisburseLoanInput, disbursedById: string
       return result;
     });
 
-    // 2. SMS happens AFTER the transaction has committed — outside `tx`,
+    // 2. SMS/Email happen AFTER the transaction has committed — outside `tx`,
     // never allowed to roll back a real disbursement if it fails.
     const withCustomer = await this.repository.findById(loanId);
     if (withCustomer?.customer) {
@@ -237,6 +237,19 @@ async disburse(loanId: string, payload: DisburseLoanInput, disbursedById: string
           loanNumber: withCustomer.loanNumber,
         },
       });
+
+      if ((withCustomer.customer as any).email) {
+        await this.notifications.sendEmail({
+          customerId: withCustomer.customer.id,
+          email: (withCustomer.customer as any).email,
+          templateCode: 'LOAN_DISBURSEMENT',
+          variables: {
+            firstName: withCustomer.customer.firstName,
+            amount: payload.amount,
+            loanNumber: withCustomer.loanNumber,
+          },
+        });
+      }
     }
 
     return updated;

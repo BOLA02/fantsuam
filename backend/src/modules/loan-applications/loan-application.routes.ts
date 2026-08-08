@@ -4,13 +4,14 @@
 import { Router } from "express";
 
 import loanApplicationController from "./loan-application.controller";
-
+import { authenticateCustomer } from "../../middleware/customer-auth.middleware";
 import { authenticate } from "../../middleware/auth.middleware";
 import { authorize } from "../../middleware/role.middleware";
 import { validate } from "../../middleware/validate.middleware";
 
 import {
   createLoanApplicationSchema,
+  createLoanApplicationForCustomerSchema,
   updateLoanApplicationSchema,
   assignOfficerSchema,
   changeStatusSchema,
@@ -23,6 +24,21 @@ import { requireApplicationFee } from "../../middleware/application-fee.middlewa
 
 const router = Router();
 
+
+// Customer self-service — logged-in returning customer applies directly,
+// no application fee, no re-registration
+router.post(
+  "/me",
+  authenticateCustomer,
+  validate(createLoanApplicationForCustomerSchema),
+  loanApplicationController.createForCustomer
+);
+
+router.get(
+  "/me",
+  authenticateCustomer,
+  loanApplicationController.getMine
+);
 // Public — customer submits application right after customer creation
 router.post(
   "/",

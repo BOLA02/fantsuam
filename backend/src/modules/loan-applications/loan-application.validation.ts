@@ -16,6 +16,15 @@ export const createLoanApplicationSchema = z.object({
   }),
 });
 
+export const createLoanApplicationForCustomerSchema = z.object({
+  body: z.object({
+    loanProductId: z.uuid({ message: "Invalid Loan Product ID format" }),
+    requestedAmount: z.coerce.number().positive(),
+    purpose: z.string().min(3),
+    durationMonths: z.coerce.number().int().positive(),
+    remarks: z.string().optional(),
+  }),
+});
 export const updateLoanApplicationSchema = z.object({
   params: z.object({
     id: z.uuid({ message: "Invalid Application ID format" }),

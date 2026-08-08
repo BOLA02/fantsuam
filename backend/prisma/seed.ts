@@ -86,6 +86,63 @@ async function main() {
     `);
   }
 
+  // 6. Seed Email templates
+  console.log("Seeding Email templates...");
+  await prisma.emailTemplate.upsert({
+    where: { code: 'APPLICATION_SUBMITTED' },
+    update: {},
+    create: {
+      code: 'APPLICATION_SUBMITTED',
+      name: 'Application Submitted',
+      subject: 'We received your loan application - {{applicationNumber}}',
+      bodyHtml: `<p>Hi {{firstName}},</p><p>We've received your loan application (#{{applicationNumber}}) for ₦{{amount}}. Our team will review it shortly.</p>`,
+    },
+  });
+
+  await prisma.emailTemplate.upsert({
+    where: { code: 'APPLICATION_APPROVED' },
+    update: {},
+    create: {
+      code: 'APPLICATION_APPROVED',
+      name: 'Application Approved',
+      subject: 'Your loan application has been approved - {{applicationNumber}}',
+      bodyHtml: `<p>Hi {{firstName}},</p><p>Good news — your loan application (#{{applicationNumber}}) has been approved. Disbursement details will follow shortly.</p>`,
+    },
+  });
+
+  await prisma.emailTemplate.upsert({
+    where: { code: 'APPLICATION_REJECTED' },
+    update: {},
+    create: {
+      code: 'APPLICATION_REJECTED',
+      name: 'Application Rejected',
+      subject: 'Update on your loan application - {{applicationNumber}}',
+      bodyHtml: `<p>Hi {{firstName}},</p><p>Unfortunately, your loan application (#{{applicationNumber}}) was not approved. Reason: {{reason}}.</p>`,
+    },
+  });
+
+  await prisma.emailTemplate.upsert({
+    where: { code: 'LOAN_DISBURSEMENT' },
+    update: {},
+    create: {
+      code: 'LOAN_DISBURSEMENT',
+      name: 'Loan Disbursed',
+      subject: 'Your loan has been disbursed - {{loanNumber}}',
+      bodyHtml: `<p>Hi {{firstName}},</p><p>₦{{amount}} has been disbursed to you for loan #{{loanNumber}}. Repayments will begin as scheduled.</p>`,
+    },
+  });
+
+  await prisma.emailTemplate.upsert({
+    where: { code: 'PAYMENT_RECEIPT' },
+    update: {},
+    create: {
+      code: 'PAYMENT_RECEIPT',
+      name: 'Payment Received',
+      subject: 'Payment received - Receipt {{receiptNumber}}',
+      bodyHtml: `<p>Hi {{firstName}},</p><p>We received your payment of ₦{{amount}} on loan #{{loanNumber}}. Receipt: {{receiptNumber}}. Outstanding balance: ₦{{balance}}.</p>`,
+    },
+  });
+
   console.log("Seed completed successfully.");
 }
 

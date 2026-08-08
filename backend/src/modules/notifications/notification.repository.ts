@@ -69,4 +69,31 @@ export class NotificationRepository {
       orderBy: { name: 'asc' },
     });
   }
+
+  async findEmailTemplateByCode(code: string, client: DbClient = prisma) {
+    return client.emailTemplate.findFirst({ where: { code, active: true } });
+  }
+
+  async createEmailLog(
+    data: {
+      customerId?: string;
+      email: string;
+      subject: string;
+      emailStatus: 'PENDING' | 'SENT' | 'FAILED';
+      templateId?: string;
+      providerMessageId?: string;
+      sentAt?: Date;
+    },
+    client: DbClient = prisma
+  ) {
+    return client.emailLog.create({ data });
+  }
+
+  async updateEmailLog(
+    id: string,
+    data: { emailStatus: 'SENT' | 'FAILED'; providerMessageId?: string; sentAt?: Date },
+    client: DbClient = prisma
+  ) {
+    return client.emailLog.update({ where: { id }, data });
+  }
 }

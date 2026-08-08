@@ -112,6 +112,18 @@ class CustomerController {
       next(error);
     }
   }
-}
 
+
+async getMe(req: Request, res: Response, next: NextFunction) {
+    try {
+      const customer = await customerService.getById(req.customer!.id);
+      res.status(200).json({
+        success: true,
+        data: customer,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+}
 export default new CustomerController();

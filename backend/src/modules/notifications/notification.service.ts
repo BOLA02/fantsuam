@@ -1,7 +1,7 @@
 import { NotificationRepository } from './notification.repository';
 import { AfricasTalkingProvider } from './sms.provider';
-import { SendSmsInput, ListSmsQuery } from './notification.types';
-
+import { SendSmsInput,SendEmailInput, ListSmsQuery } from './notification.types';
+import { MailProvider } from './mail.provider';
 function renderTemplate(template: string, variables: Record<string, string | number>): string {
   return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => String(variables[key] ?? ''));
 }
@@ -9,6 +9,7 @@ function renderTemplate(template: string, variables: Record<string, string | num
 export class NotificationService {
   private repository = new NotificationRepository();
   private provider = new AfricasTalkingProvider();
+  private mailProvider = new MailProvider(); 
 
   /**
    * Fire-and-log SMS send. Never throws — a failed SMS must not break the
@@ -65,6 +66,59 @@ export class NotificationService {
     }
   }
 
+/**
+   * Fire-and-log email send. Mirrors sendSms — never throws, always logs.
+   * Call AFTER any related DB transaction has committed.
+   */
+  async sendEmail(input: SendEmailInput): Promise<void> {
+    try {
+      const template = await this.repository.findEmailTemplateByCode(input.templateCode);
+
+      if (!template) {
+        await this.repository.createEmailLog({
+          customerId: input.customerId,
+          email: input.email,
+          subject: `[Missing template: ${input.templateCode}]`,
+          emailStatus: 'FAILED',
+        });
+        return;
+      }
+
+      const subject = renderTemplate(template.subject, input.variables);
+      const html = renderTemplate(template.bodyHtml, input.variables);
+
+      const log = await this.repository.createEmailLog({
+        customerId: input.customerId,
+        email: input.email,
+        subject,
+        emailStatus: 'PENDING',
+        templateId: template.id,
+      });
+
+      const result = await this.mailProvider.send(input.email, subject, html);
+
+      if (result.success) {
+        await this.repository.updateEmailLog(log.id, {
+          emailStatus: 'SENT',
+          providerMessageId: result.providerMessageId,
+          sentAt: new Date(),
+        });
+      } else {
+        await this.repository.updateEmailLog(log.id, { emailStatus: 'FAILED' });
+      }
+
+      if (input.customerId) {
+        await this.repository.createNotification({
+          customerId: input.customerId,
+          title: subject,
+          message: html,
+          type: 'EMAIL',
+        });
+      }
+    } catch (err) {
+      console.error('Email send failed:', err);
+    }
+  }
   async getAllSms(query: ListSmsQuery) {
     return this.repository.findAllSms(query);
   }

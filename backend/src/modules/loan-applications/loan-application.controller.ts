@@ -183,6 +183,40 @@ class LoanApplicationController {
       next(error);
     }
   }
-}
 
+
+async createForCustomer(req: Request, res: Response, next: NextFunction) {
+    try {
+      const createdById = await getSystemUserId();
+
+      const application = await loanApplicationService.create(
+        { ...req.body, customerId: req.customer!.id },
+        createdById
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Loan application submitted successfully",
+        data: application,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMine(req: Request, res: Response, next: NextFunction) {
+    try {
+      const applications = await loanApplicationService.getAll({
+        customerId: req.customer!.id,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: applications,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+}
 export default new LoanApplicationController();

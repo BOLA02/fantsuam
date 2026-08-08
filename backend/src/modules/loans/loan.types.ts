@@ -1,6 +1,7 @@
 export interface LoanListQuery {
   search?: string;
   status?: string;
+  customerId?: string;
 }
 
 export interface CreateLoanFromApplicationInput {
