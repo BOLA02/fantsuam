@@ -64,18 +64,72 @@ async function main() {
 
   console.log("System user ID:", systemUser.id);
 
-  // 5. Seed the missing SMS templates using Prisma's raw SQL utility 🚀
+  // 5. Seed the missing SMS templates using Prisma's raw SQL utility 
   console.log("Seeding SMS templates...");
   
+ 
   const templates = [
-    { code: 'APPLICATION_SUBMITTED', name: 'Application Submitted', msg: 'Hi {{firstName}}, your loan application {{applicationNumber}} for ₦{{amount}} has been received and is under review.' },
-    { code: 'APPLICATION_APPROVED', name: 'Application Approved', msg: 'Hi {{firstName}}, great news! Your loan application {{applicationNumber}} for ₦{{amount}} has been approved.' },
-    { code: 'APPLICATION_REJECTED', name: 'Application Rejected', msg: 'Hi {{firstName}}, we regret to inform you that your loan application {{applicationNumber}} was not approved at this time.' },
-    { code: 'LOAN_DISBURSEMENT', name: 'Loan Disbursement', msg: 'Hi {{firstName}}, ₦{{amount}} has been disbursed to you for loan {{loanNumber}}. Thank you for choosing us.' },
-    { code: 'PAYMENT_RECEIPT', name: 'Payment Receipt', msg: 'Hi {{firstName}}, we received your payment of ₦{{amount}} for loan {{loanNumber}} (Receipt: {{receiptNumber}}). Outstanding balance: ₦{{balance}}.' },
-    { code: 'REPAYMENT_REMINDER', name: 'Repayment Reminder', msg: 'Hi {{firstName}}, a payment of ₦{{amount}} for loan {{loanNumber}} is due on {{dueDate}}. Please make your payment on time to avoid penalties.' },
-    { code: 'RESUME_OTP', name: 'Resume Application OTP', msg: 'Your MicroFinance verification code is {{code}}. It expires in {{minutes}} minutes. Do not share this code.' }
-  ];
+  {
+    code: 'APPLICATION_SUBMITTED',
+    name: 'Application Submitted',
+    msg: 'Hi {{firstName}}, your loan application {{applicationNumber}} for ₦{{amount}} has been received and is under review.'
+  },
+
+  {
+    code: 'APPLICATION_APPROVED',
+    name: 'Application Approved',
+    msg: 'Hi {{firstName}}, great news! Your loan application {{applicationNumber}} for ₦{{amount}} has been approved.'
+  },
+
+  {
+    code: 'APPLICATION_REJECTED',
+    name: 'Application Rejected',
+    msg: 'Hi {{firstName}}, we regret to inform you that your loan application {{applicationNumber}} was not approved at this time.'
+  },
+
+  {
+    code: 'LOAN_DISBURSEMENT',
+    name: 'Loan Disbursement',
+    msg: 'Hi {{firstName}}, ₦{{amount}} has been disbursed to you for loan {{loanNumber}}. Thank you for choosing us.'
+  },
+
+  {
+    code: 'PAYMENT_RECEIPT',
+    name: 'Payment Receipt',
+    msg: 'Hi {{firstName}}, we received your payment of ₦{{amount}} for loan {{loanNumber}} (Receipt: {{receiptNumber}}). Outstanding balance: ₦{{balance}}.'
+  },
+
+  {
+    code: 'REPAYMENT_REMINDER',
+    name: 'Repayment Reminder',
+    msg: 'Hi {{firstName}}, a payment of ₦{{amount}} for loan {{loanNumber}} is due on {{dueDate}}. Please make your payment on time to avoid penalties.'
+  },
+
+  {
+    code: 'RESUME_OTP',
+    name: 'Resume Application OTP',
+    msg: 'Your MicroFinance verification code is {{code}}. It expires in {{minutes}} minutes. Do not share this code.'
+  },
+
+  // SAVINGS
+  {
+    code: 'SAVINGS_ACCOUNT_OPENED',
+    name: 'Savings Account Opened',
+    msg: 'Hi {{firstName}}, your savings account {{accountNumber}} has been opened successfully with an initial deposit of ₦{{amount}}. Your current balance is ₦{{amount}}.'
+  },
+
+  {
+    code: 'SAVINGS_DEPOSIT',
+    name: 'Savings Deposit',
+    msg: 'Hi {{firstName}}, we received your deposit of ₦{{amount}} into savings account {{accountNumber}}. Transaction reference: {{reference}}. Your current balance is ₦{{balance}}.'
+  },
+
+  {
+    code: 'SAVINGS_WITHDRAWAL',
+    name: 'Savings Withdrawal',
+    msg: 'Hi {{firstName}}, a withdrawal of ₦{{amount}} has been made from savings account {{accountNumber}}. Transaction reference: {{reference}}. Your current balance is ₦{{balance}}.'
+  },
+];
 
   for (const t of templates) {
     // Escapes MySQL quotes safely to make sure special symbols don't crash the query execution loop

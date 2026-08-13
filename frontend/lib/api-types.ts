@@ -36,8 +36,6 @@ export interface CustomerEmployment {
   isCurrent: boolean;
 }
 
-// lib/api-types.ts — UPDATE only the Customer interface, rest of file unchanged
-
 export interface Customer {
   id: string;
   customerNumber: string;
@@ -433,4 +431,67 @@ export interface SmsTemplateOption {
   code: string;
   name: string;
   message: string;
+}
+
+export interface SavingsTransaction {
+  id: string;
+  transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'ADJUSTMENT';
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  paymentMethod:
+    | 'CASH'
+    | 'BANK_TRANSFER'
+    | 'POS'
+    | 'MOBILE_MONEY';
+  description?: string | null;
+  reference: string;
+  transactionDate: string;
+}
+
+export interface SavingsAccount {
+  id: string;
+  accountNumber: string;
+
+  customer: {
+    firstName: string;
+    lastName: string;
+  };
+
+  balance: number;
+  status: 'ACTIVE' | 'INACTIVE' | 'FROZEN';
+  createdAt: string;
+
+  transactions?: SavingsTransaction[];
+}
+
+// interface SavingsAccount {
+//     id: string;
+//     accountNumber: string;
+//     customer: {
+//         firstName: string;
+//         lastName: string;
+//     };
+// }
+
+export interface CustomerLookup {
+    id: string;
+    customerNumber: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+}
+
+export interface ExistingSavingsAccount {
+    id: string;
+    accountNumber: string;
+    status: string;
+}
+
+ export interface TransactionModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    account: SavingsAccount | null;
+    transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'PROVISION';
+    onSuccess: () => void;
 }

@@ -1,5 +1,5 @@
 import prisma from "../../config/prisma";
-
+import { Prisma } from "@prisma/client";
 class CustomerRepository {
   async findAll() {
     return prisma.customer.findMany({
@@ -9,8 +9,8 @@ class CustomerRepository {
       include: {
         branch: true,
         loans: true,
-        addresses: true,      // ✨ Included for complete visual visibility
-        employments: true,    // ✨ Included for complete visual visibility
+        addresses: true,      
+        employments: true,    
       },
       orderBy: {
         createdAt: "desc",
@@ -43,14 +43,13 @@ class CustomerRepository {
     });
   }
 
-  async findByPhone(phone: string) {
-    return prisma.customer.findUnique({
-      where: {
-        phone,
-      },
-    });
-  }
-
+async findByPhone(phone: string) {
+  return prisma.customer.findUnique({
+    where: {
+      phone,
+    },
+  });
+}
   async findByEmail(email: string) {
     return prisma.customer.findUnique({
       where: {
@@ -59,12 +58,16 @@ class CustomerRepository {
     });
   }
 
-   async create(data: any) {
+  
+
+   async create(data: any,
+    tx: Prisma.TransactionClient = prisma
+   ) {
     // 1. Extract sub-objects out of the request body
     const { address, employment, ...customerProfile } = data;
 
     // 2. Perform the relational multi-table database save loop
-    return prisma.customer.create({
+    return tx.customer.create({
       data: {
         ...customerProfile,
         addresses: address ? {
@@ -97,6 +100,7 @@ class CustomerRepository {
       },
     });
   }
+  
 
 
    async update(id: string, data: any) {

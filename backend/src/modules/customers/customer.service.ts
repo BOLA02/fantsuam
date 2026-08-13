@@ -1,5 +1,3 @@
-// src/modules/customers/customer.service.ts
-// FULL FILE — UPDATED: added getByPhone() for the OTP flow
 
 import customerRepository from "./customer.repository";
 import branchRepository from "../branches/branche.repository";
@@ -21,8 +19,7 @@ class CustomerService {
     return customer;
   }
 
-  // Used by the OTP resume flow. Returns null instead of throwing —
-  // callers decide whether a "not found" phone should be silent or an error.
+
   async getByPhone(phone: string) {
     return customerRepository.findByPhone(phone);
   }

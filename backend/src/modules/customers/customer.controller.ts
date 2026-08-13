@@ -125,5 +125,6 @@ async getMe(req: Request, res: Response, next: NextFunction) {
       next(error);
     }
   }
+  
 }
 export default new CustomerController();

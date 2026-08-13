@@ -14,8 +14,9 @@ import {
   Repayment,
   LedgerEntry,
   SmsLog,
-  SmsTemplateOption
+  SmsTemplateOption,
 
+SavingsTransaction 
 } from './api-types';
 
 export const api = {
@@ -331,4 +332,124 @@ loanApplications: {
       return apiClient<ApiResponse<any>>(`/resume?token=${encodeURIComponent(token)}`);
     },
   },
+
+savings: {
+  getSummary: async () => {
+    return apiClient<ApiResponse<any>>('/savings/summary');
+  },
+
+  getAllAccounts: async (
+    params?: {
+      search?: string;
+      status?: string;
+      page?: number;
+      pageSize?: number;
+    }
+  ) => {
+    const query = params
+      ? '?' +
+        new URLSearchParams(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== '')
+            .map(([k, v]) => [k, String(v)])
+        ).toString()
+      : '';
+
+    return apiClient<ApiResponse<{
+      items: any[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>>(`/savings/accounts${query}`);
+  },
+
+  getAccount: async (id: string) => {
+    return apiClient<ApiResponse<any>>(
+      `/savings/accounts/${id}`
+    );
+  },
+
+getTransactions: async (
+  id: string,
+  page = 1,
+  pageSize = 20
+) => {
+  return apiClient<ApiResponse<{
+    items: SavingsTransaction[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>>(
+    `/savings/accounts/${id}/transactions?page=${page}&pageSize=${pageSize}`
+  );
+},
+
+  findCustomerByPhone: async (phone: string) => {
+    return apiClient<ApiResponse<{
+      found: boolean;
+      customer: {
+        id: string;
+        customerNumber: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+      } | null;
+      savingsAccount: {
+        id: string;
+        accountNumber: string;
+        status: string;
+      } | null;
+    }>>(
+      `/savings/customers/lookup?phone=${encodeURIComponent(phone)}`
+    );
+  },
+
+provisionAccount: async (payload: {
+  phone: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  bvn?: string;
+  nin?: string;
+  branchId?: string;
+  initialDeposit: number;
+  paymentMethod:
+    | 'CASH'
+    | 'BANK_TRANSFER'
+    | 'POS'
+    | 'MOBILE_MONEY';
+  description?: string;
+}) => {
+  return apiClient<ApiResponse<any>>('/savings/accounts', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+},
+
+  deposit: async (payload: any) => {
+    return apiClient<ApiResponse<any>>(
+      '/savings/deposits',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  withdraw: async (payload: any) => {
+    return apiClient<ApiResponse<any>>(
+      '/savings/withdrawals',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  lookupCustomer: async (phone: string) => {
+  return apiClient<ApiResponse<any>>(
+    `/savings/customers/lookup?phone=${encodeURIComponent(phone)}`
+  );
+},
+},
 };
