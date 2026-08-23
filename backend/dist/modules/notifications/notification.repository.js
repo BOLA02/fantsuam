@@ -46,5 +46,14 @@ class NotificationRepository {
             orderBy: { name: 'asc' },
         });
     }
+    async findEmailTemplateByCode(code, client = prisma_1.default) {
+        return client.emailTemplate.findFirst({ where: { code, active: true } });
+    }
+    async createEmailLog(data, client = prisma_1.default) {
+        return client.emailLog.create({ data });
+    }
+    async updateEmailLog(id, data, client = prisma_1.default) {
+        return client.emailLog.update({ where: { id }, data });
+    }
 }
 exports.NotificationRepository = NotificationRepository;

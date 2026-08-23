@@ -15,9 +15,16 @@ import {
   LedgerEntry,
   SmsLog,
   SmsTemplateOption,
-
-SavingsTransaction 
+ SavingsAccount,
+    CustomerLookup,
+    ExistingSavingsAccount,
+    TransactionModalProps,
+SavingsTransaction,
+CustomerLookupResponse,
+ProvisionAccountPayload,
+ProvisionAccountResult
 } from './api-types';
+
 
 export const api = {
   applicationFee: {
@@ -356,7 +363,7 @@ savings: {
       : '';
 
     return apiClient<ApiResponse<{
-      items: any[];
+      items: SavingsAccount[];
       total: number;
       page: number;
       pageSize: number;
@@ -364,70 +371,59 @@ savings: {
   },
 
   getAccount: async (id: string) => {
-    return apiClient<ApiResponse<any>>(
+    return apiClient<ApiResponse<SavingsAccount>>(
       `/savings/accounts/${id}`
     );
   },
 
-getTransactions: async (
-  id: string,
-  page = 1,
-  pageSize = 20
-) => {
-  return apiClient<ApiResponse<{
-    items: SavingsTransaction[];
-    total: number;
-    page: number;
-    pageSize: number;
-  }>>(
-    `/savings/accounts/${id}/transactions?page=${page}&pageSize=${pageSize}`
-  );
-},
-
-  findCustomerByPhone: async (phone: string) => {
+  getTransactions: async (
+    id: string,
+    page = 1,
+    pageSize = 20
+  ) => {
     return apiClient<ApiResponse<{
-      found: boolean;
-      customer: {
-        id: string;
-        customerNumber: string;
-        firstName: string;
-        lastName: string;
-        phone: string;
-      } | null;
-      savingsAccount: {
-        id: string;
-        accountNumber: string;
-        status: string;
-      } | null;
+      items: SavingsTransaction[];
+      total: number;
+      page: number;
+      pageSize: number;
     }>>(
+      `/savings/accounts/${id}/transactions?page=${page}&pageSize=${pageSize}`
+    );
+  },
+
+  // Single source of truth for the lookup call.
+  // findCustomerByPhone and lookupCustomer both hit the same
+  // endpoint — keep one implementation so the response shape
+  // can't drift between the two call sites again.
+  findCustomerByPhone: async (phone: string) => {
+    return apiClient<ApiResponse<CustomerLookupResponse>>(
       `/savings/customers/lookup?phone=${encodeURIComponent(phone)}`
     );
   },
 
-provisionAccount: async (payload: {
-  phone: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  bvn?: string;
-  nin?: string;
-  branchId?: string;
-  initialDeposit: number;
-  paymentMethod:
-    | 'CASH'
-    | 'BANK_TRANSFER'
-    | 'POS'
-    | 'MOBILE_MONEY';
-  description?: string;
-}) => {
-  return apiClient<ApiResponse<any>>('/savings/accounts', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-},
+  lookupCustomer: async (phone: string) => {
+    return apiClient<ApiResponse<CustomerLookupResponse>>(
+      `/savings/customers/lookup?phone=${encodeURIComponent(phone)}`
+    );
+  },
 
-  deposit: async (payload: any) => {
-    return apiClient<ApiResponse<any>>(
+  provisionAccount: async (payload: ProvisionAccountPayload) => {
+    return apiClient<ApiResponse<ProvisionAccountResult>>(
+      '/savings/accounts',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  deposit: async (payload: {
+    savingsAccountId: string;
+    amount: number;
+    paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
+    description?: string;
+  }) => {
+    return apiClient<ApiResponse<SavingsTransaction>>(
       '/savings/deposits',
       {
         method: 'POST',
@@ -436,8 +432,13 @@ provisionAccount: async (payload: {
     );
   },
 
-  withdraw: async (payload: any) => {
-    return apiClient<ApiResponse<any>>(
+  withdraw: async (payload: {
+    savingsAccountId: string;
+    amount: number;
+    paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
+    description?: string;
+  }) => {
+    return apiClient<ApiResponse<SavingsTransaction>>(
       '/savings/withdrawals',
       {
         method: 'POST',
@@ -445,11 +446,5 @@ provisionAccount: async (payload: {
       }
     );
   },
-
-  lookupCustomer: async (phone: string) => {
-  return apiClient<ApiResponse<any>>(
-    `/savings/customers/lookup?phone=${encodeURIComponent(phone)}`
-  );
-},
 },
 };

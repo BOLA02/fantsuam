@@ -202,6 +202,8 @@ await this.ledger.recordEntry(tx, {
   }
 
   // savings.service.ts — new method
+
+
 async provisionAccount(
   input: {
     phone: string;
@@ -212,11 +214,7 @@ async provisionAccount(
     nin?: string;
     branchId?: string;
     initialDeposit: number;
-    paymentMethod:
-      | 'CASH'
-      | 'BANK_TRANSFER'
-      | 'POS'
-      | 'MOBILE_MONEY';
+    paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
     description?: string;
   },
   performedById: string
@@ -224,255 +222,176 @@ async provisionAccount(
   const initialDeposit = round2(input.initialDeposit);
 
   if (initialDeposit <= 0) {
-    throw new AppError(
-      400,
-      'Initial deposit must be greater than 0'
-    );
+    throw new AppError(400, 'Initial deposit must be greater than 0');
   }
 
   const phone = input.phone.trim();
 
   if (!phone) {
-    throw new AppError(
-      400,
-      'Customer phone number is required'
-    );
+    throw new AppError(400, 'Customer phone number is required');
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  let result;
 
-    // --------------------------------------------------
-    // 1. FIND CUSTOMER BY PHONE
-    // --------------------------------------------------
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      // ------------------------------------------------
+      // 1. FIND OR CREATE CUSTOMER
+      // ------------------------------------------------
 
-    let customer = await this.repository.findCustomerByPhone(
-      phone,
-      tx
-    );
+      let customer = await this.repository.findCustomerByPhone(phone, tx);
 
-    // --------------------------------------------------
-    // 2. CREATE CUSTOMER IF NOT FOUND
-    // --------------------------------------------------
+      if (!customer) {
+        if (!input.firstName?.trim() || !input.lastName?.trim()) {
+          throw new AppError(
+            400,
+            'Customer not found. First name and last name are required to create a new customer.'
+          );
+        }
 
-    if (!customer) {
-      if (!input.firstName?.trim() || !input.lastName?.trim()) {
-        throw new AppError(
-          400,
-          'Customer not found. First name and last name are required to create a new customer.'
-        );
-      }
-
-      const customerNumber = await this.nextNumber(
-        tx,
-        'CUSTOMER',
-        {
+        const customerNumber = await this.nextNumber(tx, 'CUSTOMER', {
           prefix: 'CUS',
           padding: 6,
           yearBased: false,
-        }
-      );
+        });
 
-      customer = await CustomerRepository.create(
-        {
-          customerNumber,
-          phone,
+        customer = await CustomerRepository.create(
+          {
+            customerNumber,
+            phone,
+            firstName: input.firstName.trim(),
+            lastName: input.lastName.trim(),
+            email: input.email?.trim() || undefined,
+            bvn: input.bvn?.trim() || undefined,
+            nin: input.nin?.trim() || undefined,
+            branchId: input.branchId,
+          },
+          tx
+        );
+      }
 
-          firstName: input.firstName.trim(),
-          lastName: input.lastName.trim(),
+      // ------------------------------------------------
+      // 2. FRIENDLY PRE-CHECK (not the source of truth)
+      // ------------------------------------------------
 
-          email: input.email?.trim() || undefined,
-          bvn: input.bvn?.trim() || undefined,
-          nin: input.nin?.trim() || undefined,
+      const existingAccount = await this.repository.findAccountByCustomerId(customer.id, tx);
 
-          branchId: input.branchId,
-        },
-        tx
-      );
-    }
+      if (existingAccount) {
+        throw new AppError(409, `Customer already has savings account ${existingAccount.accountNumber}`);
+      }
 
-    // --------------------------------------------------
-    // 3. CHECK EXISTING SAVINGS ACCOUNT
-    // --------------------------------------------------
+      // ------------------------------------------------
+      // 3. CREATE SAVINGS ACCOUNT
+      //    Partial unique index on (customerId) WHERE deletedAt IS NULL
+      //    is what actually blocks a concurrent duplicate — P2002 caught below.
+      // ------------------------------------------------
 
-    const existingAccount =
-      await this.repository.findAccountByCustomerId(
-        customer.id,
-        tx
-      );
-
-    if (existingAccount) {
-      throw new AppError(
-        409,
-        `Customer already has savings account ${existingAccount.accountNumber}`
-      );
-    }
-
-    // --------------------------------------------------
-    // 4. CREATE SAVINGS ACCOUNT
-    // --------------------------------------------------
-
-    const accountNumber = await this.nextNumber(
-      tx,
-      'SAVINGS_ACCOUNT',
-      {
+      const accountNumber = await this.nextNumber(tx, 'SAVINGS_ACCOUNT', {
         prefix: 'SAV',
         padding: 6,
         yearBased: false,
-      }
-    );
+      });
 
-    const account =
-      await this.repository.createAccount(
+      const account = await this.repository.createAccount(
         {
           accountNumber,
           customerId: customer.id,
-          branchId:
-            input.branchId ??
-            customer.branchId ??
-            undefined,
+          branchId: input.branchId ?? customer.branchId ?? undefined,
         },
         tx
       );
 
-    // --------------------------------------------------
-    // 5. CREATE INITIAL DEPOSIT
-    // --------------------------------------------------
+      // ------------------------------------------------
+      // 4. INITIAL DEPOSIT
+      // ------------------------------------------------
 
-    const balanceBefore = 0;
+      const balanceBefore = 0;
+      const balanceAfter = initialDeposit;
 
-    const balanceAfter = initialDeposit;
+      await this.repository.updateBalanceConditional(account.id, balanceBefore, balanceAfter, tx);
 
-    // Update account balance
-    await this.repository.updateBalanceConditional(
-      account.id,
-      balanceBefore,
-      balanceAfter,
-      tx
-    );
-
-    // Generate transaction reference
-    const reference = await this.nextNumber(
-      tx,
-      'SAVINGS_TXN',
-      {
+      const reference = await this.nextNumber(tx, 'SAVINGS_TXN', {
         prefix: 'TXN',
         padding: 6,
         yearBased: true,
-      }
-    );
+      });
 
-    // Create transaction
-    const initialTransaction =
-      await this.repository.createTransaction(
+      const initialTransaction = await this.repository.createTransaction(
         {
           reference,
-
           savingsAccountId: account.id,
-
           transactionType: 'DEPOSIT',
-
           amount: initialDeposit,
-
           balanceBefore,
-
           balanceAfter,
-
           paymentMethod: input.paymentMethod,
-
-          description:
-            input.description ??
-            'Initial savings deposit',
-
+          description: input.description ?? 'Initial savings deposit',
           performedById,
-
           transactionDate: new Date(),
         },
         tx
       );
 
-    // --------------------------------------------------
-    // 6. LEDGER ENTRY
-    // --------------------------------------------------
+      // ------------------------------------------------
+      // 5. LEDGER ENTRY
+      // ------------------------------------------------
 
-    await this.ledger.recordEntry(tx, {
-      transactionType: 'SAVINGS_DEPOSIT',
+      await this.ledger.recordEntry(tx, {
+        transactionType: 'SAVINGS_DEPOSIT',
+        amount: initialDeposit,
+        direction: 'CREDIT',
+        paymentMethod: input.paymentMethod,
+        reference: initialTransaction.reference,
+        narration: `Initial savings deposit · ${accountNumber} · ${initialTransaction.reference}`,
+        savingsAccountId: account.id,
+        savingsTransactionId: initialTransaction.id,
+      });
 
-      amount: initialDeposit,
-
-      direction: 'CREDIT',
-
-      paymentMethod: input.paymentMethod,
-
-      reference: initialTransaction.reference,
-
-      narration:
-        `Initial savings deposit · ${accountNumber} · ${initialTransaction.reference}`,
-
-      savingsAccountId: account.id,
-
-      savingsTransactionId:
-        initialTransaction.id,
+      return { customer, account, initialTransaction };
     });
+  } catch (err) {
+    // Race: two concurrent provision calls for the same customer.
+    // The partial unique index on SavingsAccount(customerId) WHERE deletedAt IS NULL
+    // rejects the loser here — this is the actual guarantee, not the pre-check above.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw new AppError(409, 'Customer already has a savings account');
+    }
+    throw err;
+  }
 
-    return {
-      customer,
-      account,
-      initialTransaction,
-    };
-  });
-
-  // --------------------------------------------------
-  // 7. SEND SMS AFTER TRANSACTION COMMITS
-  // --------------------------------------------------
+  // ------------------------------------------------
+  // 6. SEND SMS AFTER COMMIT
+  // ------------------------------------------------
 
   if (result.customer?.phone) {
     await this.notifications.sendSms({
       customerId: result.customer.id,
-
       phone: result.customer.phone,
-
       templateCode: 'SAVINGS_DEPOSIT',
-
       variables: {
         firstName: result.customer.firstName,
-
         amount: initialDeposit.toString(),
-
-        accountNumber:
-          result.account.accountNumber,
-
-        reference:
-          result.initialTransaction.reference,
-
-        balance:
-          initialDeposit.toString(),
+        accountNumber: result.account.accountNumber,
+        reference: result.initialTransaction.reference,
+        balance: initialDeposit.toString(),
       },
     });
   }
 
-  // --------------------------------------------------
-  // 8. RETURN UPDATED ACCOUNT
-  // --------------------------------------------------
+  // ------------------------------------------------
+  // 7. RETURN UPDATED ACCOUNT
+  // ------------------------------------------------
 
-  const updatedAccount =
-    await this.repository.findAccountById(
-      result.account.id
-    );
+  const updatedAccount = await this.repository.findAccountById(result.account.id);
 
   if (!updatedAccount) {
-    throw new AppError(
-      404,
-      'Savings account could not be retrieved after creation'
-    );
+    throw new AppError(404, 'Savings account could not be retrieved after creation');
   }
 
   return {
     customer: result.customer,
-
     account: updatedAccount,
-
-    initialDeposit:
-      result.initialTransaction,
+    initialDeposit: result.initialTransaction,
   };
 }
 async findCustomerByPhone(phone: string) {

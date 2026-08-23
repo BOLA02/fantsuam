@@ -1,7 +1,7 @@
 "use strict";
 // src/modules/loan-applications/loan-application.validation.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.idParamSchema = exports.createReviewSchema = exports.changeStatusSchema = exports.assignOfficerSchema = exports.updateLoanApplicationSchema = exports.createLoanApplicationSchema = void 0;
+exports.idParamSchema = exports.createReviewSchema = exports.changeStatusSchema = exports.assignOfficerSchema = exports.updateLoanApplicationSchema = exports.createLoanApplicationForCustomerSchema = exports.createLoanApplicationSchema = void 0;
 const zod_1 = require("zod");
 exports.createLoanApplicationSchema = zod_1.z.object({
     body: zod_1.z.object({
@@ -10,6 +10,15 @@ exports.createLoanApplicationSchema = zod_1.z.object({
         assignedOfficerId: zod_1.z
             .uuid({ message: "Invalid Officer ID format" })
             .optional(),
+        requestedAmount: zod_1.z.coerce.number().positive(),
+        purpose: zod_1.z.string().min(3),
+        durationMonths: zod_1.z.coerce.number().int().positive(),
+        remarks: zod_1.z.string().optional(),
+    }),
+});
+exports.createLoanApplicationForCustomerSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        loanProductId: zod_1.z.uuid({ message: "Invalid Loan Product ID format" }),
         requestedAmount: zod_1.z.coerce.number().positive(),
         purpose: zod_1.z.string().min(3),
         durationMonths: zod_1.z.coerce.number().int().positive(),

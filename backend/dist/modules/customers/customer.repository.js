@@ -13,8 +13,8 @@ class CustomerRepository {
             include: {
                 branch: true,
                 loans: true,
-                addresses: true, // ✨ Included for complete visual visibility
-                employments: true, // ✨ Included for complete visual visibility
+                addresses: true,
+                employments: true,
             },
             orderBy: {
                 createdAt: "desc",
@@ -58,11 +58,11 @@ class CustomerRepository {
             },
         });
     }
-    async create(data) {
+    async create(data, tx = prisma_1.default) {
         // 1. Extract sub-objects out of the request body
         const { address, employment, ...customerProfile } = data;
         // 2. Perform the relational multi-table database save loop
-        return prisma_1.default.customer.create({
+        return tx.customer.create({
             data: {
                 ...customerProfile,
                 addresses: address ? {

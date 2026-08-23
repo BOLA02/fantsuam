@@ -98,7 +98,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
              * }
              */
 
-            if (data.found && data.customer) {
+            if (data.exists && data.customer) {
                 // Existing customer
                 setCustomer(data.customer);
 

@@ -7,9 +7,21 @@ exports.LedgerRepository = void 0;
 const prisma_1 = __importDefault(require("../../config/prisma"));
 class LedgerRepository {
     /** Last ledger balance recorded for this loan, or 0 if none exist yet. */
-    async getLastBalance(loanId, client) {
+    async getLastBalanceForLoan(loanId, client) {
         const last = await client.ledgerEntry.findFirst({
             where: { transaction: { loanId } },
+            orderBy: { createdAt: 'desc' },
+        });
+        return last ? Number(last.balance) : 0;
+    }
+    /** Last ledger balance recorded for this savings account, or 0 if none exist yet. */
+    async getLastBalanceForSavings(savingsAccountId, client) {
+        const last = await client.ledgerEntry.findFirst({
+            where: {
+                transaction: {
+                    savingsTransaction: { savingsAccountId } // Navigates through your 1-to-1 relation table
+                }
+            },
             orderBy: { createdAt: 'desc' },
         });
         return last ? Number(last.balance) : 0;
@@ -49,6 +61,13 @@ class LedgerRepository {
                 paymentMethod: input.paymentMethod,
                 reference: input.reference,
                 narration: input.narration,
+                // Since transaction -> savingsTransaction is a 1-to-1 connection,
+                // we hook it into the relation creation block instead of a foreign key column:
+                ...(input.savingsTransactionId ? {
+                    savingsTransaction: {
+                        connect: { id: input.savingsTransactionId }
+                    }
+                } : {})
             },
         });
         const ledgerNumber = await this.generateLedgerNumber(client);
@@ -68,16 +87,20 @@ class LedgerRepository {
         const pageSize = query.pageSize ?? 50;
         const where = {
             ...(query.loanId ? { transaction: { loanId: query.loanId } } : {}),
-            ...(query.search
-                ? {
-                    OR: [
-                        { narration: { contains: query.search } },
-                        { ledgerNumber: { contains: query.search } },
-                        { transaction: { transactionNumber: { contains: query.search } } },
-                        { transaction: { loan: { loanNumber: { contains: query.search } } } },
-                    ],
+            ...(query.savingsAccountId ? {
+                transaction: {
+                    savingsTransaction: { savingsAccountId: query.savingsAccountId }
                 }
-                : {}),
+            } : {}),
+            ...(query.search ? {
+                OR: [
+                    { narration: { contains: query.search } },
+                    { ledgerNumber: { contains: query.search } },
+                    { transaction: { transactionNumber: { contains: query.search } } },
+                    { transaction: { loan: { loanNumber: { contains: query.search } } } },
+                    { transaction: { savingsTransaction: { savingsAccount: { accountNumber: { contains: query.search } } } } },
+                ],
+            } : {}),
         };
         return prisma_1.default.ledgerEntry.findMany({
             where,
@@ -86,6 +109,11 @@ class LedgerRepository {
                     include: {
                         loan: { include: { customer: true } },
                         repayment: { include: { receivedBy: true } },
+                        savingsTransaction: {
+                            include: {
+                                savingsAccount: { include: { customer: true } }, // ← the missing piece
+                            },
+                        },
                     },
                 },
             },
@@ -97,6 +125,17 @@ class LedgerRepository {
     async findByLoan(loanId) {
         return prisma_1.default.ledgerEntry.findMany({
             where: { transaction: { loanId } },
+            include: { transaction: true },
+            orderBy: { createdAt: 'asc' },
+        });
+    }
+    async findBySavings(savingsAccountId) {
+        return prisma_1.default.ledgerEntry.findMany({
+            where: {
+                transaction: {
+                    savingsTransaction: { savingsAccountId }
+                }
+            },
             include: { transaction: true },
             orderBy: { createdAt: 'asc' },
         });

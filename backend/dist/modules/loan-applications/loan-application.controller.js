@@ -142,5 +142,33 @@ class LoanApplicationController {
             next(error);
         }
     }
+    async createForCustomer(req, res, next) {
+        try {
+            const createdById = await (0, system_user_1.getSystemUserId)();
+            const application = await loan_application_service_1.default.create({ ...req.body, customerId: req.customer.id }, createdById);
+            res.status(201).json({
+                success: true,
+                message: "Loan application submitted successfully",
+                data: application,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async getMine(req, res, next) {
+        try {
+            const applications = await loan_application_service_1.default.getAll({
+                customerId: req.customer.id,
+            });
+            res.status(200).json({
+                success: true,
+                data: applications,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
 }
 exports.default = new LoanApplicationController();

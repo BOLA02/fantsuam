@@ -193,7 +193,7 @@ class LoanService {
             });
             return result;
         });
-        // 2. SMS happens AFTER the transaction has committed — outside `tx`,
+        // 2. SMS/Email happen AFTER the transaction has committed — outside `tx`,
         // never allowed to roll back a real disbursement if it fails.
         const withCustomer = await this.repository.findById(loanId);
         if (withCustomer?.customer) {
@@ -207,6 +207,18 @@ class LoanService {
                     loanNumber: withCustomer.loanNumber,
                 },
             });
+            if (withCustomer.customer.email) {
+                await this.notifications.sendEmail({
+                    customerId: withCustomer.customer.id,
+                    email: withCustomer.customer.email,
+                    templateCode: 'LOAN_DISBURSEMENT',
+                    variables: {
+                        firstName: withCustomer.customer.firstName,
+                        amount: payload.amount,
+                        loanNumber: withCustomer.loanNumber,
+                    },
+                });
+            }
         }
         return updated;
     }

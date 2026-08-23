@@ -19,6 +19,7 @@ class LoanRepository {
     async findAll(params) {
         const where = {
             deletedAt: null,
+            ...(params.customerId ? { customerId: params.customerId } : {}),
             ...(params.status ? { status: params.status } : {}),
             ...(params.search
                 ? {

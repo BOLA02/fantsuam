@@ -7,6 +7,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const customer_controller_1 = __importDefault(require("./customer.controller"));
+const customer_auth_middleware_1 = require("../../middleware/customer-auth.middleware");
 const auth_middleware_1 = require("../../middleware/auth.middleware");
 const role_middleware_1 = require("../../middleware/role.middleware");
 const validate_middleware_1 = require("../../middleware/validate.middleware");
@@ -14,6 +15,7 @@ const customer_validation_1 = require("./customer.validation");
 const client_1 = require("@prisma/client");
 const application_fee_middleware_1 = require("../../middleware/application-fee.middleware");
 const router = (0, express_1.Router)();
+router.get("/me", customer_auth_middleware_1.authenticateCustomer, customer_controller_1.default.getMe);
 // Public — customer self-applies for a loan
 router.post("/", application_fee_middleware_1.requireApplicationFee, (0, validate_middleware_1.validate)(customer_validation_1.createCustomerSchema), customer_controller_1.default.create);
 // Everything below requires staff authentication

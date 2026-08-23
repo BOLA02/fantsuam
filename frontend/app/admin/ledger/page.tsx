@@ -36,12 +36,15 @@ interface NormalizedEntry {
 
 function normalize(entry: LedgerEntry): NormalizedEntry {
   const txn = entry.transaction;
+  const customer = txn.loan?.customer ?? txn.savingsTransaction?.savingsAccount?.customer;
+  const accountRef = txn.loan?.loanNumber ?? txn.savingsTransaction?.savingsAccount?.accountNumber ?? '—';
+
   return {
     id: entry.id,
     date: txn.transactionDate,
     narration: entry.narration,
-    customerName: txn.loan?.customer ? `${txn.loan.customer.firstName} ${txn.loan.customer.lastName}` : '—',
-    loanNumber: txn.loan?.loanNumber ?? '—',
+    customerName: customer ? `${customer.firstName} ${customer.lastName}` : '—',
+    loanNumber: accountRef,
     type: txn.transactionType,
     debit: Number(entry.debit),
     credit: Number(entry.credit),
@@ -105,6 +108,8 @@ const typeStyleMap: Record<TransactionType, string> = {
   PENALTY: 'bg-rose-50 text-rose-700',
   PROCESSING_FEE: 'bg-slate-100 text-slate-600',
   ADJUSTMENT: 'bg-gray-100 text-gray-600',
+  DEPOSIT: 'bg-emerald-50 text-emerald-700',
+  WITHDRAWAL: 'bg-amber-50 text-amber-700',
 };
 
 const typeDotMap: Record<TransactionType, string> = {
@@ -114,8 +119,9 @@ const typeDotMap: Record<TransactionType, string> = {
   PENALTY: 'bg-rose-500',
   PROCESSING_FEE: 'bg-slate-400',
   ADJUSTMENT: 'bg-gray-400',
+  DEPOSIT: 'bg-emerald-500',
+  WITHDRAWAL: 'bg-amber-500',
 };
-
 function TypeTag({ type }: { type: TransactionType }) {
   return (
     <span
@@ -138,13 +144,7 @@ function initials(name: string) {
     .join('');
 }
 
-/* ------------------------------------------------------------------ */
-/* Details modal — replaces the old inline row-expansion. A modal     */
-/* keeps the table rows a fixed, scannable height and gives the       */
-/* "hidden on small screens" columns (customer, type, ledger #) a     */
-/* single place to always live, instead of leaking into an in-row     */
-/* card that reflows the table.                                      */
-/* ------------------------------------------------------------------ */
+
 function LedgerDetailsModal({
   group,
   onClose,

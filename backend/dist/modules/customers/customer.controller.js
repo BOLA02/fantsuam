@@ -80,5 +80,17 @@ class CustomerController {
             next(error);
         }
     }
+    async getMe(req, res, next) {
+        try {
+            const customer = await customer_service_1.default.getById(req.customer.id);
+            res.status(200).json({
+                success: true,
+                data: customer,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
 }
 exports.default = new CustomerController();

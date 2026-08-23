@@ -21,5 +21,10 @@ class LoanController {
         const result = await this.service.disburse(id, req.body, disbursedById);
         return res.status(200).json(apiResponse_1.ApiResponse.success(result, 'Loan disbursed successfully'));
     };
+    getMine = async (req, res) => {
+        const customerId = req.customer.id;
+        const result = await this.service.getAllLoans({ customerId });
+        return res.status(200).json(apiResponse_1.ApiResponse.success(result, 'Loans retrieved successfully'));
+    };
 }
 exports.LoanController = LoanController;

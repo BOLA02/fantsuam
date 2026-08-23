@@ -1,6 +1,4 @@
 "use strict";
-// src/modules/customers/customer.service.ts
-// FULL FILE — UPDATED: added getByPhone() for the OTP flow
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -19,8 +17,6 @@ class CustomerService {
         }
         return customer;
     }
-    // Used by the OTP resume flow. Returns null instead of throwing —
-    // callers decide whether a "not found" phone should be silent or an error.
     async getByPhone(phone) {
         return customer_repository_1.default.findByPhone(phone);
     }

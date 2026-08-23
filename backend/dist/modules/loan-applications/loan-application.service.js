@@ -124,6 +124,18 @@ class LoanApplicationService {
                 },
             });
         }
+        if (customer.email) {
+            await notifications.sendEmail({
+                customerId: customer.id,
+                email: customer.email,
+                templateCode: 'APPLICATION_SUBMITTED',
+                variables: {
+                    firstName: customer.firstName,
+                    applicationNumber,
+                    amount: Number(data.requestedAmount),
+                },
+            });
+        }
         return application;
     }
     async update(id, data) {
@@ -164,7 +176,8 @@ class LoanApplicationService {
         return loan_application_repository_1.default.assignOfficer(id, assignedOfficerId);
     }
     // src/modules/loan-applications/loan-application.service.ts
-    // UPDATED — changeStatus() now enforces requiresGuarantor. Rest of file unchanged.
+    // UPDATED — changeStatus() now enforces requiresGuarantor, and sends
+    // approval/rejection emails. Rest of file unchanged.
     async changeStatus(id, newStatus, changedById, remarks) {
         const application = await this.getById(id);
         const allowedNext = STATUS_TRANSITIONS[application.status];
@@ -183,11 +196,41 @@ class LoanApplicationService {
         // APPROVED also creates the Loan. Both writes share one transaction so
         // the application can never end up APPROVED without a matching Loan.
         if (newStatus === client_1.ApplicationStatus.APPROVED) {
-            return prisma_1.default.$transaction(async (tx) => {
+            const result = await prisma_1.default.$transaction(async (tx) => {
                 const updatedApplication = await loan_application_repository_1.default.changeStatus(id, newStatus, changedById, remarks, tx);
                 await this.loanService.createFromApplication(updatedApplication, changedById, tx);
                 return updatedApplication;
             });
+            const customer = await prisma_1.default.customer.findUnique({ where: { id: result.customerId } });
+            if (customer?.email) {
+                await notifications.sendEmail({
+                    customerId: customer.id,
+                    email: customer.email,
+                    templateCode: 'APPLICATION_APPROVED',
+                    variables: {
+                        firstName: customer.firstName,
+                        applicationNumber: result.applicationNumber,
+                    },
+                });
+            }
+            return result;
+        }
+        if (newStatus === client_1.ApplicationStatus.REJECTED) {
+            const result = await loan_application_repository_1.default.changeStatus(id, newStatus, changedById, remarks);
+            const customer = await prisma_1.default.customer.findUnique({ where: { id: application.customerId } });
+            if (customer?.email) {
+                await notifications.sendEmail({
+                    customerId: customer.id,
+                    email: customer.email,
+                    templateCode: 'APPLICATION_REJECTED',
+                    variables: {
+                        firstName: customer.firstName,
+                        applicationNumber: application.applicationNumber,
+                        reason: remarks ?? 'Not specified',
+                    },
+                });
+            }
+            return result;
         }
         return loan_application_repository_1.default.changeStatus(id, newStatus, changedById, remarks);
     }

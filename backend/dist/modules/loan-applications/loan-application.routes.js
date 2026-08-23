@@ -7,6 +7,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const loan_application_controller_1 = __importDefault(require("./loan-application.controller"));
+const customer_auth_middleware_1 = require("../../middleware/customer-auth.middleware");
 const auth_middleware_1 = require("../../middleware/auth.middleware");
 const role_middleware_1 = require("../../middleware/role.middleware");
 const validate_middleware_1 = require("../../middleware/validate.middleware");
@@ -14,6 +15,10 @@ const loan_application_validation_1 = require("./loan-application.validation");
 const client_1 = require("@prisma/client");
 const application_fee_middleware_1 = require("../../middleware/application-fee.middleware");
 const router = (0, express_1.Router)();
+// Customer self-service — logged-in returning customer applies directly,
+// no application fee, no re-registration
+router.post("/me", customer_auth_middleware_1.authenticateCustomer, (0, validate_middleware_1.validate)(loan_application_validation_1.createLoanApplicationForCustomerSchema), loan_application_controller_1.default.createForCustomer);
+router.get("/me", customer_auth_middleware_1.authenticateCustomer, loan_application_controller_1.default.getMine);
 // Public — customer submits application right after customer creation
 router.post("/", application_fee_middleware_1.requireApplicationFee, (0, validate_middleware_1.validate)(loan_application_validation_1.createLoanApplicationSchema), loan_application_controller_1.default.create);
 // Everything below requires staff authentication

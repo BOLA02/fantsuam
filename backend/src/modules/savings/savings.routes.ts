@@ -25,12 +25,6 @@ router.get(
 );
 
 router.get(
-  '/accounts',
-  validate(listSavingsAccountsSchema),
-  asyncHandler(controller.getAllAccounts)
-);
-
-router.get(
   '/customers/lookup',
   authorize(
     UserRole.SUPER_ADMIN,
@@ -40,6 +34,14 @@ router.get(
   ),
   asyncHandler(controller.lookupCustomer)
 );
+
+router.get(
+  '/accounts',
+  validate(listSavingsAccountsSchema),
+  asyncHandler(controller.getAllAccounts)
+);
+
+
 
 router.post(
   '/accounts',

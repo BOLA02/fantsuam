@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, CalendarDays, CircleDollarSign, CreditCard, FileText, LogOut, Plus, WalletCards, X } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, CheckCircle2, CircleDollarSign, CreditCard, FileText, LogOut, Plus, WalletCards, X } from 'lucide-react';
 import { clearCustomerSession, customerApi, getLoanProducts, applyForLoan, type LoanProductOption } from '@/lib/customer-api';
 
 type Loan = { id: string; loanNumber: string; status: string; approvedAmount: string | number; outstandingBalance: string | number; repaymentFrequency: string; loanProduct: { name: string }; schedules: { dueDate: string; balance: string | number }[] };
@@ -17,6 +17,7 @@ export default function CustomerAccountPage() {
   const [repayments, setRepayments] = useState<Repayment[]>([]);
   const [error, setError] = useState('');
   const [showApply, setShowApply] = useState(false);
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
 
   const loadAccount = () => {
     Promise.all([customerApi<{ data: Loan[] }>('/customer-account/loans'), customerApi<{ data: Repayment[] }>('/customer-account/repayments')])
@@ -26,10 +27,19 @@ export default function CustomerAccountPage() {
 
   useEffect(() => { loadAccount(); }, [router]);
 
+  // auto-dismiss toast
+  useEffect(() => {
+    if (!toast.visible) return;
+    const timer = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 4000);
+    return () => clearTimeout(timer);
+  }, [toast.visible]);
+
   const activeLoan = loans[0];
   const nextPayment = activeLoan?.schedules[0];
   const paid = useMemo(() => repayments.reduce((sum, payment) => sum + Number(payment.amount), 0), [repayments]);
   const logout = () => { clearCustomerSession(); router.replace('/account/sign-in'); };
+
+  const showToast = (message: string) => setToast({ message, visible: true });
 
   return <main className="min-h-screen bg-[#F8F6F0] text-[#2B2B28]">
     <header className="border-b border-[#E6E0D3] bg-white">
@@ -77,8 +87,29 @@ export default function CustomerAccountPage() {
       </section>
     </div>
 
-    {showApply && <ReapplyModal onClose={() => setShowApply(false)} onSuccess={() => { setShowApply(false); loadAccount(); }} />}
+    {showApply && <ReapplyModal onClose={() => setShowApply(false)} onSuccess={() => { setShowApply(false); loadAccount(); showToast('Your loan application was submitted successfully.'); }} />}
+
+    <Toast message={toast.message} visible={toast.visible} onClose={() => setToast((t) => ({ ...t, visible: false }))} />
   </main>;
+}
+
+function Toast({ message, visible, onClose }: { message: string; visible: boolean; onClose: () => void }) {
+  return (
+    <div
+      aria-live="polite"
+      className={`fixed inset-x-0 bottom-6 z-[60] flex justify-center px-4 transition-all duration-300 ${
+        visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0'
+      }`}
+    >
+      <div className="flex w-full max-w-md items-start gap-3 rounded-2xl border border-[#CDEAB8] bg-[#F3F9EC] px-4 py-3.5 shadow-[0_12px_30px_rgba(30,122,52,0.18)]">
+        <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-[#1E7A34]" />
+        <p className="flex-1 text-sm font-medium leading-5 text-[#1E4D26]">{message}</p>
+        <button onClick={onClose} className="shrink-0 rounded-full p-1 text-[#1E7A34]/70 hover:bg-[#E3F2D6] hover:text-[#1E7A34]">
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function ReapplyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
