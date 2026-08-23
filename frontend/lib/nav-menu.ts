@@ -18,6 +18,7 @@ export const menuItems = [
   { label: 'Loans', href: '/admin/loans', icon: Wallet },
   { label: 'Repayments', href: '/admin/repayments', icon: RotateCw },
   { label: 'Ledger', href: '/admin/ledger', icon: BookOpen },
+  {label: 'Savings', href:'/admin/savings', icon: BookOpen},
   { label: 'Loan Products', href: '/admin/products', icon: Boxes },
   { label: 'SMS Center', href: '/admin/sms', icon: MessageSquare },
   { label: 'Reports', href: '/admin/reports', icon: BarChart3 },

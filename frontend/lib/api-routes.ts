@@ -14,9 +14,17 @@ import {
   Repayment,
   LedgerEntry,
   SmsLog,
-  SmsTemplateOption
-
+  SmsTemplateOption,
+ SavingsAccount,
+    CustomerLookup,
+    ExistingSavingsAccount,
+    TransactionModalProps,
+SavingsTransaction,
+CustomerLookupResponse,
+ProvisionAccountPayload,
+ProvisionAccountResult
 } from './api-types';
+
 
 export const api = {
   applicationFee: {
@@ -331,4 +339,112 @@ loanApplications: {
       return apiClient<ApiResponse<any>>(`/resume?token=${encodeURIComponent(token)}`);
     },
   },
+
+savings: {
+  getSummary: async () => {
+    return apiClient<ApiResponse<any>>('/savings/summary');
+  },
+
+  getAllAccounts: async (
+    params?: {
+      search?: string;
+      status?: string;
+      page?: number;
+      pageSize?: number;
+    }
+  ) => {
+    const query = params
+      ? '?' +
+        new URLSearchParams(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== '')
+            .map(([k, v]) => [k, String(v)])
+        ).toString()
+      : '';
+
+    return apiClient<ApiResponse<{
+      items: SavingsAccount[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>>(`/savings/accounts${query}`);
+  },
+
+  getAccount: async (id: string) => {
+    return apiClient<ApiResponse<SavingsAccount>>(
+      `/savings/accounts/${id}`
+    );
+  },
+
+  getTransactions: async (
+    id: string,
+    page = 1,
+    pageSize = 20
+  ) => {
+    return apiClient<ApiResponse<{
+      items: SavingsTransaction[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>>(
+      `/savings/accounts/${id}/transactions?page=${page}&pageSize=${pageSize}`
+    );
+  },
+
+  // Single source of truth for the lookup call.
+  // findCustomerByPhone and lookupCustomer both hit the same
+  // endpoint — keep one implementation so the response shape
+  // can't drift between the two call sites again.
+  findCustomerByPhone: async (phone: string) => {
+    return apiClient<ApiResponse<CustomerLookupResponse>>(
+      `/savings/customers/lookup?phone=${encodeURIComponent(phone)}`
+    );
+  },
+
+  lookupCustomer: async (phone: string) => {
+    return apiClient<ApiResponse<CustomerLookupResponse>>(
+      `/savings/customers/lookup?phone=${encodeURIComponent(phone)}`
+    );
+  },
+
+  provisionAccount: async (payload: ProvisionAccountPayload) => {
+    return apiClient<ApiResponse<ProvisionAccountResult>>(
+      '/savings/accounts',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  deposit: async (payload: {
+    savingsAccountId: string;
+    amount: number;
+    paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
+    description?: string;
+  }) => {
+    return apiClient<ApiResponse<SavingsTransaction>>(
+      '/savings/deposits',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  withdraw: async (payload: {
+    savingsAccountId: string;
+    amount: number;
+    paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'MOBILE_MONEY';
+    description?: string;
+  }) => {
+    return apiClient<ApiResponse<SavingsTransaction>>(
+      '/savings/withdrawals',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+},
 };

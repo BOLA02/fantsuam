@@ -169,7 +169,7 @@ class RepaymentService {
             await this.settleLoanBalance(tx, payload.loanId, totalApplied, receivedById);
             return createdRows;
         });
-        // SMS after commit.
+        // SMS/Email after commit.
         const withCustomer = await prisma_1.default.loan.findUnique({
             where: { id: payload.loanId },
             include: { customer: true },
@@ -178,6 +178,20 @@ class RepaymentService {
             await this.notifications.sendSms({
                 customerId: withCustomer.customer.id,
                 phone: withCustomer.customer.phone,
+                templateCode: 'PAYMENT_RECEIPT',
+                variables: {
+                    firstName: withCustomer.customer.firstName,
+                    amount: payload.amount,
+                    loanNumber: withCustomer.loanNumber,
+                    receiptNumber: rows[0]?.receiptNumber ?? '',
+                    balance: withCustomer.outstandingBalance.toString(),
+                },
+            });
+        }
+        if (withCustomer?.customer?.email) {
+            await this.notifications.sendEmail({
+                customerId: withCustomer.customer.id,
+                email: withCustomer.customer.email,
                 templateCode: 'PAYMENT_RECEIPT',
                 variables: {
                     firstName: withCustomer.customer.firstName,
@@ -249,6 +263,20 @@ class RepaymentService {
             await this.notifications.sendSms({
                 customerId: withCustomer.customer.id,
                 phone: withCustomer.customer.phone,
+                templateCode: 'PAYMENT_RECEIPT',
+                variables: {
+                    firstName: withCustomer.customer.firstName,
+                    amount: Number(pending.amount),
+                    loanNumber: withCustomer.loanNumber,
+                    receiptNumber: pending.receiptNumber,
+                    balance: withCustomer.outstandingBalance.toString(),
+                },
+            });
+        }
+        if (withCustomer?.customer?.email) {
+            await this.notifications.sendEmail({
+                customerId: withCustomer.customer.id,
+                email: withCustomer.customer.email,
                 templateCode: 'PAYMENT_RECEIPT',
                 variables: {
                     firstName: withCustomer.customer.firstName,

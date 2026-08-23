@@ -1,9 +1,7 @@
 import { z } from "zod";
 
 export const createCustomerSchema = z.object({
-  // src/modules/customers/customer.validation.ts
-// UPDATED — createCustomerSchema: branchId now optional. Rest of file unchanged.
-
+  
   body: z.object({
     customerNumber: z.string().min(3),
     firstName: z.string().min(2),

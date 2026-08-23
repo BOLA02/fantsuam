@@ -9,10 +9,13 @@ const guarantor_controller_1 = __importDefault(require("./guarantor.controller")
 const auth_middleware_1 = require("../../middleware/auth.middleware");
 const role_middleware_1 = require("../../middleware/role.middleware");
 const validate_middleware_1 = require("../../middleware/validate.middleware");
+const customer_auth_middleware_1 = require("../../middleware/customer-auth.middleware");
 const guarantor_validation_1 = require("./guarantor.validation");
 const client_1 = require("@prisma/client");
 const application_fee_middleware_1 = require("../../middleware/application-fee.middleware");
 const router = (0, express_1.Router)();
+router.post("/me", customer_auth_middleware_1.authenticateCustomer, (0, validate_middleware_1.validate)(guarantor_validation_1.createGuarantorSchema), guarantor_controller_1.default.createForCustomer);
+router.get("/me", customer_auth_middleware_1.authenticateCustomer, guarantor_controller_1.default.getMine);
 // Public — created as part of the customer/loan application flow
 router.post("/", application_fee_middleware_1.requireApplicationFee, (0, validate_middleware_1.validate)(guarantor_validation_1.createGuarantorSchema), guarantor_controller_1.default.create);
 // Everything below requires staff authentication

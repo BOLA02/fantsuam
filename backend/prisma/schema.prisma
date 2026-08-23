@@ -83,6 +83,18 @@ enum RepaymentConfirmationStatus {
 }
 
 
+enum SavingsAccountStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+}
+
+enum SavingsTransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  ADJUSTMENT
+}
+
 
 enum PaymentMethod {
   CASH
@@ -117,6 +129,8 @@ enum TransactionType {
   PENALTY
   PROCESSING_FEE
   ADJUSTMENT
+  SAVINGS_DEPOSIT     // NEW
+  SAVINGS_WITHDRAWAL  // NEW
 }
 
 enum NotificationType {
@@ -157,6 +171,7 @@ model Branch {
   users User[]
 
   customers Customer[]
+  savingsAccounts SavingsAccount[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -198,6 +213,7 @@ model User {
   applicationReviews    ApplicationReview[]
   applicationStatusLogs ApplicationStatusHistory[]
   documentsUploaded     Document[]
+   savingsTransactionsPerformed SavingsTransaction[] @relation("SavingsTransactionPerformedBy")
 
   loanDisbursements LoanDisbursement[]
 
@@ -295,6 +311,8 @@ model Customer {
 
   smsLogs SmsLog[]
   emailLogs EmailLog[]
+
+  savingsAccounts SavingsAccount[]
 
   branchId       String?
   branch         Branch?  @relation(fields: [branchId], references: [id])
@@ -928,6 +946,8 @@ model Transaction {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
+  savingsTransaction SavingsTransaction?
+
   @@index([transactionNumber])
 }
 
@@ -1127,6 +1147,56 @@ model EmailLog {
   createdAt         DateTime     @default(now())
 
   @@index([customerId])
+}
+
+model SavingsAccount {
+  id            String               @id @default(uuid())
+  accountNumber String               @unique
+  customerId    String
+  branchId      String?
+  status        SavingsAccountStatus @default(ACTIVE)
+  balance       Decimal              @default(0) @db.Decimal(15, 2)
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  branch   Branch?  @relation(fields: [branchId], references: [id])
+
+  transactions SavingsTransaction[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([customerId])
+  @@index([accountNumber])
+  @@index([status])
+}
+
+model SavingsTransaction {
+  id               String                 @id @default(uuid())
+  reference        String                 @unique
+  savingsAccountId String
+  transactionType  SavingsTransactionType
+  amount           Decimal                @db.Decimal(15, 2)
+  balanceBefore    Decimal                @db.Decimal(15, 2)
+  balanceAfter     Decimal                @db.Decimal(15, 2)
+  paymentMethod    PaymentMethod
+  description      String?
+  performedById    String
+  transactionId    String?                @unique // link to ledger Transaction
+
+  savingsAccount SavingsAccount @relation(fields: [savingsAccountId], references: [id])
+  performedBy    User           @relation("SavingsTransactionPerformedBy", fields: [performedById], references: [id])
+  transaction    Transaction?   @relation(fields: [transactionId], references: [id])
+
+  transactionDate DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([savingsAccountId])
+  @@index([performedById])
+  @@index([transactionType])
 }
 
 enum EmailStatus {

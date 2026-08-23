@@ -36,8 +36,6 @@ export interface CustomerEmployment {
   isCurrent: boolean;
 }
 
-// lib/api-types.ts — UPDATE only the Customer interface, rest of file unchanged
-
 export interface Customer {
   id: string;
   customerNumber: string;
@@ -354,7 +352,9 @@ export type TransactionType =
   | 'INTEREST'
   | 'PENALTY'
   | 'PROCESSING_FEE'
-  | 'ADJUSTMENT';
+  | 'ADJUSTMENT'
+  | 'DEPOSIT'
+  | 'WITHDRAWAL';
 
 export interface LedgerTransaction {
   id: string;
@@ -375,6 +375,19 @@ export interface LedgerTransaction {
       lastName: string;
     };
   };
+  savingsTransaction?: {
+    id: string;
+    transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'ADJUSTMENT';
+    savingsAccountId: string;
+    savingsAccount?: {
+      id: string;
+      accountNumber: string;
+      customer: {
+        firstName: string;
+        lastName: string;
+      };
+    };
+  } | null;
   repayment?: {
     id: string;
     receiptNumber: string;
@@ -433,4 +446,92 @@ export interface SmsTemplateOption {
   code: string;
   name: string;
   message: string;
+}
+
+
+export interface SavingsTransaction {
+  id: string;
+  transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'ADJUSTMENT';
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  paymentMethod:
+    | 'CASH'
+    | 'BANK_TRANSFER'
+    | 'POS'
+    | 'MOBILE_MONEY';
+  description?: string | null;
+  reference: string;
+  transactionDate: string;
+}
+
+export interface SavingsAccount {
+  id: string;
+  accountNumber: string;
+
+  customer: {
+    firstName: string;
+    lastName: string;
+  };
+
+  balance: number;
+  status: 'ACTIVE' | 'INACTIVE' | 'FROZEN';
+  createdAt: string;
+
+  transactions?: SavingsTransaction[];
+}
+
+export interface CustomerLookup {
+  id: string;
+  customerNumber: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  branchId: string | null;
+}
+
+export interface ExistingSavingsAccount {
+  id: string;
+  accountNumber: string;
+  status: string;
+}
+
+// Matches SavingsService.findCustomerByPhone exactly.
+// Do NOT hand-roll this shape again at the call site.
+export interface CustomerLookupResponse {
+  exists: boolean;
+  customer: CustomerLookup | null;
+  hasSavingsAccount: boolean;
+  savingsAccount: ExistingSavingsAccount | null;
+}
+
+export interface ProvisionAccountPayload {
+  phone: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  bvn?: string;
+  nin?: string;
+  branchId?: string;
+  initialDeposit: number;
+  paymentMethod:
+    | 'CASH'
+    | 'BANK_TRANSFER'
+    | 'POS'
+    | 'MOBILE_MONEY';
+  description?: string;
+}
+
+export interface ProvisionAccountResult {
+  customer: CustomerLookup;
+  account: SavingsAccount;
+  initialDeposit: SavingsTransaction;
+}
+
+export interface TransactionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  account: SavingsAccount | null;
+  transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'PROVISION';
+  onSuccess: () => void;
 }

@@ -3,9 +3,22 @@ import prisma from '../../config/prisma';
 
 export class LedgerRepository {
   /** Last ledger balance recorded for this loan, or 0 if none exist yet. */
-  async getLastBalance(loanId: string, client: Prisma.TransactionClient): Promise<number> {
+  async getLastBalanceForLoan(loanId: string, client: Prisma.TransactionClient): Promise<number> {
     const last = await client.ledgerEntry.findFirst({
       where: { transaction: { loanId } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return last ? Number(last.balance) : 0;
+  }
+
+  /** Last ledger balance recorded for this savings account, or 0 if none exist yet. */
+  async getLastBalanceForSavings(savingsAccountId: string, client: Prisma.TransactionClient): Promise<number> {
+    const last = await client.ledgerEntry.findFirst({
+      where: { 
+        transaction: { 
+          savingsTransaction: { savingsAccountId } // Navigates through your 1-to-1 relation table
+        } 
+      },
       orderBy: { createdAt: 'desc' },
     });
     return last ? Number(last.balance) : 0;
@@ -35,9 +48,10 @@ export class LedgerRepository {
 
   async createEntry(
     input: {
-      loanId: string;
+      loanId?: string;
       repaymentId?: string;
       penaltyId?: string;
+      savingsTransactionId?: string; // Expecting the underlying core savings event row ID here
       transactionType: any;
       amount: number;
       paymentMethod?: any;
@@ -50,6 +64,7 @@ export class LedgerRepository {
     client: Prisma.TransactionClient
   ) {
     const transactionNumber = await this.generateTransactionNumber(client);
+    
     const transaction = await client.transaction.create({
       data: {
         transactionNumber,
@@ -61,6 +76,13 @@ export class LedgerRepository {
         paymentMethod: input.paymentMethod,
         reference: input.reference,
         narration: input.narration,
+        // Since transaction -> savingsTransaction is a 1-to-1 connection,
+        // we hook it into the relation creation block instead of a foreign key column:
+        ...(input.savingsTransactionId ? {
+          savingsTransaction: {
+            connect: { id: input.savingsTransactionId }
+          }
+        } : {})
       },
     });
 
@@ -77,43 +99,64 @@ export class LedgerRepository {
     });
   }
 
-  async findAll(query: { search?: string; loanId?: string; page?: number; pageSize?: number }) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 50;
+async findAll(query: { search?: string; loanId?: string; savingsAccountId?: string; page?: number; pageSize?: number }) {
+  const page = query.page ?? 1;
+  const pageSize = query.pageSize ?? 50;
 
-    const where: Prisma.LedgerEntryWhereInput = {
-      ...(query.loanId ? { transaction: { loanId: query.loanId } } : {}),
-      ...(query.search
-        ? {
-            OR: [
-              { narration: { contains: query.search } },
-              { ledgerNumber: { contains: query.search } },
-              { transaction: { transactionNumber: { contains: query.search } } },
-              { transaction: { loan: { loanNumber: { contains: query.search } } } },
-            ],
-          }
-        : {}),
-    };
+  const where: Prisma.LedgerEntryWhereInput = {
+    ...(query.loanId ? { transaction: { loanId: query.loanId } } : {}),
+    ...(query.savingsAccountId ? {
+      transaction: {
+        savingsTransaction: { savingsAccountId: query.savingsAccountId }
+      }
+    } : {}),
+    ...(query.search ? {
+      OR: [
+        { narration: { contains: query.search } },
+        { ledgerNumber: { contains: query.search } },
+        { transaction: { transactionNumber: { contains: query.search } } },
+        { transaction: { loan: { loanNumber: { contains: query.search } } } },
+        { transaction: { savingsTransaction: { savingsAccount: { accountNumber: { contains: query.search } } } } },
+      ],
+    } : {}),
+  };
 
-    return prisma.ledgerEntry.findMany({
-      where,
-      include: {
-        transaction: {
-          include: {
-            loan: { include: { customer: true } },
-            repayment: { include: { receivedBy: true } },
+  return prisma.ledgerEntry.findMany({
+    where,
+    include: {
+      transaction: {
+        include: {
+          loan: { include: { customer: true } },
+          repayment: { include: { receivedBy: true } },
+          savingsTransaction: {
+            include: {
+              savingsAccount: { include: { customer: true } }, // ← the missing piece
+            },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    });
-  }
+    },
+    orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  });
+}
 
   async findByLoan(loanId: string) {
     return prisma.ledgerEntry.findMany({
       where: { transaction: { loanId } },
+      include: { transaction: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async findBySavings(savingsAccountId: string) {
+    return prisma.ledgerEntry.findMany({
+      where: { 
+        transaction: { 
+          savingsTransaction: { savingsAccountId } 
+        } 
+      },
       include: { transaction: true },
       orderBy: { createdAt: 'asc' },
     });

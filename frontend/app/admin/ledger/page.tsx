@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Download,
-  ChevronRight,
   Search,
   ArrowDownCircle,
   ArrowUpCircle,
   Scale,
   BookOpen,
   RotateCw,
+  X,
+  Filter,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -28,17 +31,20 @@ interface NormalizedEntry {
   credit: number;
   balance: number;
   ledgerNumber: string;
-  groupKey: string; // repayment's transactionGroupId, or this entry's own id if not a repayment split
+  groupKey: string;
 }
 
 function normalize(entry: LedgerEntry): NormalizedEntry {
   const txn = entry.transaction;
+  const customer = txn.loan?.customer ?? txn.savingsTransaction?.savingsAccount?.customer;
+  const accountRef = txn.loan?.loanNumber ?? txn.savingsTransaction?.savingsAccount?.accountNumber ?? '—';
+
   return {
     id: entry.id,
     date: txn.transactionDate,
     narration: entry.narration,
-    customerName: txn.loan?.customer ? `${txn.loan.customer.firstName} ${txn.loan.customer.lastName}` : '—',
-    loanNumber: txn.loan?.loanNumber ?? '—',
+    customerName: customer ? `${customer.firstName} ${customer.lastName}` : '—',
+    loanNumber: accountRef,
     type: txn.transactionType,
     debit: Number(entry.debit),
     credit: Number(entry.credit),
@@ -78,7 +84,10 @@ function groupEntries(entries: NormalizedEntry[]): GroupedLedgerRow[] {
       return {
         groupKey,
         date: first.date,
-        narration: sorted.length > 1 ? `${first.narration.split(' · ')[0]} (${sorted.length} installments)` : first.narration,
+        narration:
+          sorted.length > 1
+            ? `${first.narration.split(' · ')[0]} (${sorted.length} installments)`
+            : first.narration,
         customerName: first.customerName,
         loanNumber: first.loanNumber,
         type: first.type,
@@ -92,10 +101,6 @@ function groupEntries(entries: NormalizedEntry[]): GroupedLedgerRow[] {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-// Deliberately not using the shared Badge component here — its "secondary" /
-// "primary" variants render as the app's brand green, and its default
-// padding is oversized for a dense table column. This is a small, self-
-// contained pill with explicit, non-green colors and a minimal footprint.
 const typeStyleMap: Record<TransactionType, string> = {
   LOAN_DISBURSEMENT: 'bg-slate-100 text-slate-700',
   REPAYMENT: 'bg-indigo-50 text-indigo-700',
@@ -103,8 +108,20 @@ const typeStyleMap: Record<TransactionType, string> = {
   PENALTY: 'bg-rose-50 text-rose-700',
   PROCESSING_FEE: 'bg-slate-100 text-slate-600',
   ADJUSTMENT: 'bg-gray-100 text-gray-600',
+  DEPOSIT: 'bg-emerald-50 text-emerald-700',
+  WITHDRAWAL: 'bg-amber-50 text-amber-700',
 };
 
+const typeDotMap: Record<TransactionType, string> = {
+  LOAN_DISBURSEMENT: 'bg-slate-500',
+  REPAYMENT: 'bg-indigo-500',
+  INTEREST: 'bg-violet-500',
+  PENALTY: 'bg-rose-500',
+  PROCESSING_FEE: 'bg-slate-400',
+  ADJUSTMENT: 'bg-gray-400',
+  DEPOSIT: 'bg-emerald-500',
+  WITHDRAWAL: 'bg-amber-500',
+};
 function TypeTag({ type }: { type: TransactionType }) {
   return (
     <span
@@ -117,12 +134,189 @@ function TypeTag({ type }: { type: TransactionType }) {
   );
 }
 
+function initials(name: string) {
+  if (!name || name === '—') return '—';
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('');
+}
+
+
+function LedgerDetailsModal({
+  group,
+  onClose,
+  formatCurrency,
+}: {
+  group: GroupedLedgerRow;
+  onClose: () => void;
+  formatCurrency: (n: number) => string;
+}) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const [copied, setCopied] = useState(false);
+  const isMultiEntry = group.entries.length > 1;
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  function copyLedgerNumber() {
+    navigator.clipboard?.writeText(group.ledgerNumber).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-[2px] p-0 sm:p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Transaction details"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full sm:max-w-lg max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border bg-white shadow-xl animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-150"
+      >
+        {/* Header */}
+        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-border bg-white px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">
+              {new Date(group.date).toLocaleDateString(undefined, {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </p>
+            <h2 className="mt-0.5 text-base font-semibold text-foreground break-words">{group.narration}</h2>
+          </div>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close details"
+            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-slate-100 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-5">
+          {/* Identity */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+              {initials(group.customerName)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{group.customerName}</p>
+              <p className="text-xs text-muted-foreground font-mono truncate">Loan {group.loanNumber}</p>
+            </div>
+            <div className="ml-auto">
+              <TypeTag type={group.type} />
+            </div>
+          </div>
+
+          {/* Amount summary */}
+          <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-slate-50 p-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Debit</p>
+              <p className="text-sm font-semibold text-rose-700 tabular-nums">
+                {group.totalDebit > 0 ? formatCurrency(group.totalDebit) : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Credit</p>
+              <p className="text-sm font-semibold text-indigo-700 tabular-nums">
+                {group.totalCredit > 0 ? formatCurrency(group.totalCredit) : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Balance</p>
+              <p className="text-sm font-semibold text-foreground tabular-nums">{formatCurrency(group.finalBalance)}</p>
+            </div>
+          </div>
+
+          {/* Ledger number */}
+          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ledger #</p>
+              <p className="text-sm font-mono text-foreground">{group.ledgerNumber}</p>
+            </div>
+            <button
+              type="button"
+              onClick={copyLedgerNumber}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-slate-100 hover:text-foreground"
+            >
+              {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+
+          {/* Installment timeline */}
+          {isMultiEntry && (
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                {group.entries.length} installments in this transaction
+              </p>
+              <ol className="relative border-l border-border pl-4 space-y-4">
+                {group.entries.map((e) => (
+                  <li key={e.id} className="relative">
+                    <span
+                      className={`absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-white ${typeDotMap[e.type]}`}
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+                      <span className="text-xs font-medium text-foreground">
+                        {new Date(e.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
+                      </span>
+                      <span className="font-mono text-[11px] text-muted-foreground">{e.ledgerNumber}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{e.narration}</p>
+                    <div className="mt-0.5 flex gap-4 text-xs tabular-nums">
+                      <span className="text-rose-700">{e.debit > 0 ? formatCurrency(e.debit) : '—'}</span>
+                      <span className="text-indigo-700">{e.credit > 0 ? formatCurrency(e.credit) : '—'}</span>
+                      <span className="font-medium text-foreground">Bal {formatCurrency(e.balance)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TYPE_FILTERS: { label: string; value: TransactionType | 'ALL' }[] = [
+  { label: 'All types', value: 'ALL' },
+  { label: 'Disbursement', value: 'LOAN_DISBURSEMENT' },
+  { label: 'Repayment', value: 'REPAYMENT' },
+  { label: 'Interest', value: 'INTEREST' },
+  { label: 'Penalty', value: 'PENALTY' },
+  { label: 'Processing fee', value: 'PROCESSING_FEE' },
+  { label: 'Adjustment', value: 'ADJUSTMENT' },
+];
+
 export default function LedgerPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<TransactionType | 'ALL'>('ALL');
   const [entries, setEntries] = useState<NormalizedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [activeGroup, setActiveGroup] = useState<GroupedLedgerRow | null>(null);
 
   const fetchLedger = useCallback(async (search?: string) => {
     try {
@@ -150,19 +344,15 @@ export default function LedgerPage() {
     return () => clearTimeout(t);
   }, [searchTerm, fetchLedger]);
 
-  function toggleExpand(groupKey: string) {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupKey)) next.delete(groupKey);
-      else next.add(groupKey);
-      return next;
-    });
-  }
-
   const formatCurrency = (amount: number) =>
     `₦${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
   const groups = useMemo(() => groupEntries(entries), [entries]);
+  const filteredGroups = useMemo(
+    () => (typeFilter === 'ALL' ? groups : groups.filter((g) => g.type === typeFilter)),
+    [groups, typeFilter],
+  );
+
   const totalDebits = useMemo(() => entries.reduce((sum, e) => sum + e.debit, 0), [entries]);
   const totalCredits = useMemo(() => entries.reduce((sum, e) => sum + e.credit, 0), [entries]);
   const netMovement = totalCredits - totalDebits;
@@ -219,6 +409,22 @@ export default function LedgerPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
+        <div className="relative">
+          <Filter size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as TransactionType | 'ALL')}
+            className="h-9 rounded-md border border-border bg-white pl-7 pr-3 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+          >
+            {TYPE_FILTERS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <Button variant="outline" disabled title="Export not yet implemented">
           <Download size={18} className="mr-2" />
           Export
@@ -242,7 +448,7 @@ export default function LedgerPage() {
               Try again
             </button>
           </div>
-        ) : groups.length === 0 ? (
+        ) : filteredGroups.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center gap-2 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-muted-foreground mb-1">
               <BookOpen size={20} />
@@ -255,157 +461,76 @@ export default function LedgerPage() {
             </p>
           </div>
         ) : (
-          <div>
+          <div className="max-h-[70vh] overflow-y-auto">
             <table className="w-full text-sm table-fixed">
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="text-left text-xs font-medium uppercase tracking-wide text-muted-foreground border-b border-border bg-slate-50">
-                  <th className="py-3 pl-4 pr-2 w-[9%]">Date</th>
-                  <th className="py-3 px-2 w-[24%]">Narration</th>
-                  <th className="py-3 px-2 w-[15%] hidden lg:table-cell">Customer</th>
-                  <th className="py-3 px-2 w-[10%] hidden md:table-cell">Type</th>
-                  <th className="py-3 px-2 w-[10%] text-right">Debit</th>
-                  <th className="py-3 px-2 w-[10%] text-right">Credit</th>
-                  <th className="py-3 px-2 w-[10%] text-right">Balance</th>
-                  <th className="py-3 pl-2 pr-2 w-[9%] hidden sm:table-cell">Ledger #</th>
-                  <th className="py-3 pl-2 pr-4 w-[8%] text-right">Details</th>
+                  <th className="py-3 pl-4 pr-2 w-[10%]">Date</th>
+                  <th className="py-3 px-2 w-[28%]">Narration</th>
+                  <th className="py-3 px-2 w-[16%] hidden lg:table-cell">Customer</th>
+                  <th className="py-3 px-2 w-[12%] hidden md:table-cell">Type</th>
+                  <th className="py-3 px-2 w-[11%] text-right">Debit</th>
+                  <th className="py-3 px-2 w-[11%] text-right">Credit</th>
+                  <th className="py-3 pl-2 pr-4 w-[12%] text-right">Balance</th>
                 </tr>
               </thead>
               <tbody>
-                {groups.map((group) => {
-                  const isExpanded = expandedGroups.has(group.groupKey);
-                  const isMultiEntry = group.entries.length > 1;
-                  return (
-                    <>
-                      <tr
-                        key={group.groupKey}
-                        className="group border-b border-border last:border-0 transition-colors hover:bg-slate-50"
-                      >
-                        <td className="py-3 pl-4 pr-2 text-foreground truncate">
-                          {new Date(group.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
-                        </td>
-                        <td className="py-3 px-2 text-foreground truncate" title={group.narration}>
-                          {group.narration}
-                        </td>
-                        <td className="py-3 px-2 text-foreground truncate hidden lg:table-cell">
-                          {group.customerName}
-                        </td>
-                        <td className="py-3 px-2 hidden md:table-cell">
-                          <TypeTag type={group.type} />
-                        </td>
-                        <td className="py-3 px-2 text-foreground text-right tabular-nums truncate">
-                          {group.totalDebit > 0 ? formatCurrency(group.totalDebit) : '—'}
-                        </td>
-                        <td className="py-3 px-2 text-foreground text-right tabular-nums truncate">
-                          {group.totalCredit > 0 ? formatCurrency(group.totalCredit) : '—'}
-                        </td>
-                        <td className="py-3 px-2 font-semibold text-foreground text-right tabular-nums truncate">
-                          {formatCurrency(group.finalBalance)}
-                        </td>
-                        <td className="py-3 pl-2 pr-2 font-mono text-xs text-muted-foreground truncate hidden sm:table-cell">
-                          {group.ledgerNumber}
-                        </td>
-                        <td className="py-3 pl-2 pr-4">
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => toggleExpand(group.groupKey)}
-                              aria-expanded={isExpanded}
-                              aria-label={isExpanded ? 'Hide transaction details' : 'Show transaction details'}
-                              title={isExpanded ? 'Hide details' : 'Show details'}
-                              className={`group/toggle inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
-                                isExpanded
-                                  ? 'border-primary/30 bg-primary/10 text-primary'
-                                  : 'border-border text-muted-foreground hover:bg-slate-100 hover:text-foreground'
-                              }`}
-                            >
-                              Details
-                              <ChevronRight
-                                size={13}
-                                className={`transition-transform duration-200 ease-out ${
-                                  isExpanded ? 'rotate-90' : 'rotate-0 group-hover/toggle:translate-x-0.5'
-                                }`}
-                              />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr className="border-b border-border last:border-0 bg-slate-50">
-                          <td colSpan={9} className="px-4 py-3">
-                            <div className="rounded-lg border border-border bg-slate-50 p-3 space-y-3">
-                              {/* Fields hidden as table columns on narrower screens — always
-                                  surfaced here so no detail is ever fully out of reach. */}
-                              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
-                                <div>
-                                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Customer</dt>
-                                  <dd className="text-sm text-foreground truncate">{group.customerName}</dd>
-                                </div>
-                                <div>
-                                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Loan</dt>
-                                  <dd className="text-sm text-foreground font-mono truncate">{group.loanNumber}</dd>
-                                </div>
-                                <div>
-                                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Type</dt>
-                                  <dd className="mt-0.5">
-                                    <TypeTag type={group.type} />
-                                  </dd>
-                                </div>
-                                <div>
-                                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Ledger #</dt>
-                                  <dd className="text-sm text-foreground font-mono truncate">{group.ledgerNumber}</dd>
-                                </div>
-                              </dl>
-
-                              {isMultiEntry && (
-                                <div className="border-t border-border pt-3">
-                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
-                                    {group.entries.length} entries in this transaction
-                                  </p>
-                                  <div className="space-y-1.5">
-                                    {group.entries.map((e) => (
-                                      <div
-                                        key={e.id}
-                                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-md bg-slate-50 px-3 py-2 text-xs"
-                                      >
-                                        <span className="flex items-center gap-1.5 text-muted-foreground min-w-0">
-                                          <span className="h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
-                                          <span className="text-foreground shrink-0">
-                                            {new Date(e.date).toLocaleDateString(undefined, {
-                                              day: '2-digit',
-                                              month: 'short',
-                                            })}
-                                          </span>
-                                          <span className="truncate">{e.narration}</span>
-                                        </span>
-                                        <span className="flex items-center gap-4 shrink-0 tabular-nums">
-                                          <span className="text-muted-foreground">
-                                            Debit {e.debit > 0 ? formatCurrency(e.debit) : '—'}
-                                          </span>
-                                          <span className="text-muted-foreground">
-                                            Credit {e.credit > 0 ? formatCurrency(e.credit) : '—'}
-                                          </span>
-                                          <span className="text-foreground font-medium">
-                                            Bal {formatCurrency(e.balance)}
-                                          </span>
-                                          <span className="font-mono text-muted-foreground">{e.ledgerNumber}</span>
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
+                {filteredGroups.map((group) => (
+                  <tr
+                    key={group.groupKey}
+                    onClick={() => setActiveGroup(group)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`View details for ${group.narration}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGroup(group);
+                      }
+                    }}
+                    className="cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <td className="py-3 pl-4 pr-2 text-foreground truncate">
+                      {new Date(group.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
+                    </td>
+                    <td className="py-3 px-2 text-foreground truncate" title={group.narration}>
+                      {group.narration}
+                      {group.entries.length > 1 && (
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 align-middle">
+                          {group.entries.length}×
+                        </span>
                       )}
-                    </>
-                  );
-                })}
+                    </td>
+                    <td className="py-3 px-2 text-foreground truncate hidden lg:table-cell">
+                      {group.customerName}
+                    </td>
+                    <td className="py-3 px-2 hidden md:table-cell">
+                      <TypeTag type={group.type} />
+                    </td>
+                    <td className="py-3 px-2 text-foreground text-right tabular-nums truncate">
+                      {group.totalDebit > 0 ? formatCurrency(group.totalDebit) : '—'}
+                    </td>
+                    <td className="py-3 px-2 text-foreground text-right tabular-nums truncate">
+                      {group.totalCredit > 0 ? formatCurrency(group.totalCredit) : '—'}
+                    </td>
+                    <td className="py-3 pl-2 pr-4 font-semibold text-foreground text-right tabular-nums truncate">
+                      {formatCurrency(group.finalBalance)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {activeGroup && (
+        <LedgerDetailsModal
+          group={activeGroup}
+          onClose={() => setActiveGroup(null)}
+          formatCurrency={formatCurrency}
+        />
+      )}
     </div>
   );
 }

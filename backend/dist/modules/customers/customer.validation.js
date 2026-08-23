@@ -3,8 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateCustomerSchema = exports.createCustomerSchema = void 0;
 const zod_1 = require("zod");
 exports.createCustomerSchema = zod_1.z.object({
-    // src/modules/customers/customer.validation.ts
-    // UPDATED — createCustomerSchema: branchId now optional. Rest of file unchanged.
     body: zod_1.z.object({
         customerNumber: zod_1.z.string().min(3),
         firstName: zod_1.z.string().min(2),

@@ -3,12 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationService = void 0;
 const notification_repository_1 = require("./notification.repository");
 const sms_provider_1 = require("./sms.provider");
+const mail_provider_1 = require("./mail.provider");
 function renderTemplate(template, variables) {
     return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => String(variables[key] ?? ''));
 }
 class NotificationService {
     repository = new notification_repository_1.NotificationRepository();
     provider = new sms_provider_1.AfricasTalkingProvider();
+    mailProvider = new mail_provider_1.MailProvider();
     /**
      * Fire-and-log SMS send. Never throws — a failed SMS must not break the
      * calling flow (payment, disbursement, etc.). Call this AFTER any related
@@ -57,6 +59,55 @@ class NotificationService {
         catch (err) {
             // Swallow — SMS is best-effort, never lets a caller's real operation fail.
             console.error('SMS send failed:', err);
+        }
+    }
+    /**
+       * Fire-and-log email send. Mirrors sendSms — never throws, always logs.
+       * Call AFTER any related DB transaction has committed.
+       */
+    async sendEmail(input) {
+        try {
+            const template = await this.repository.findEmailTemplateByCode(input.templateCode);
+            if (!template) {
+                await this.repository.createEmailLog({
+                    customerId: input.customerId,
+                    email: input.email,
+                    subject: `[Missing template: ${input.templateCode}]`,
+                    emailStatus: 'FAILED',
+                });
+                return;
+            }
+            const subject = renderTemplate(template.subject, input.variables);
+            const html = renderTemplate(template.bodyHtml, input.variables);
+            const log = await this.repository.createEmailLog({
+                customerId: input.customerId,
+                email: input.email,
+                subject,
+                emailStatus: 'PENDING',
+                templateId: template.id,
+            });
+            const result = await this.mailProvider.send(input.email, subject, html);
+            if (result.success) {
+                await this.repository.updateEmailLog(log.id, {
+                    emailStatus: 'SENT',
+                    providerMessageId: result.providerMessageId,
+                    sentAt: new Date(),
+                });
+            }
+            else {
+                await this.repository.updateEmailLog(log.id, { emailStatus: 'FAILED' });
+            }
+            if (input.customerId) {
+                await this.repository.createNotification({
+                    customerId: input.customerId,
+                    title: subject,
+                    message: html,
+                    type: 'EMAIL',
+                });
+            }
+        }
+        catch (err) {
+            console.error('Email send failed:', err);
         }
     }
     async getAllSms(query) {

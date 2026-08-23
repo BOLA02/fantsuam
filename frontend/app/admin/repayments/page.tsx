@@ -106,7 +106,6 @@ export default function RepaymentsPage() {
   const [repayments, setRepayments] = useState<Repayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
@@ -118,6 +117,9 @@ export default function RepaymentsPage() {
   const [modalError, setModalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmingGroupId, setConfirmingGroupId] = useState<string | null>(null);
+
+  // Details modal — shows the installment/split breakdown for a grouped payment
+  const [detailsGroup, setDetailsGroup] = useState<GroupedPayment | null>(null);
 
   const fetchRepayments = useCallback(async (search?: string) => {
     try {
@@ -232,20 +234,15 @@ export default function RepaymentsPage() {
         }
       }
       await fetchRepayments(searchTerm || undefined);
+      // Keep the details modal in sync if it's open on this group
+      setDetailsGroup((prev) =>
+        prev && prev.transactionGroupId === group.transactionGroupId ? null : prev
+      );
     } catch (err: any) {
       setError(err.message || 'Failed to confirm payment.');
     } finally {
       setConfirmingGroupId(null);
     }
-  }
-
-  function toggleExpand(groupId: string) {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
   }
 
   const formatCurrency = (amount: number | string) =>
@@ -376,140 +373,98 @@ export default function RepaymentsPage() {
               </thead>
               <tbody>
                 {groups.map((group) => {
-                  const isExpanded = expandedGroups.has(group.transactionGroupId);
                   const isMultiSplit = group.splits.length > 1;
                   const isConfirmed = group.status === 'CONFIRMED';
                   return (
-                    <>
-                      <tr
-                        key={group.transactionGroupId}
-                        className={`group border-b border-border last:border-0 border-l-2 transition-colors hover:bg-secondary/20 ${
-                          isConfirmed ? 'border-l-indigo-400' : 'border-l-amber-400'
-                        }`}
-                      >
-                        <td className="py-3 pl-4 pr-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarHue(
-                                group.customerName
-                              )}`}
-                            >
-                              {initials(group.customerName)}
-                            </div>
-                            <span className="text-foreground font-medium truncate">{group.customerName}</span>
+                    <tr
+                      key={group.transactionGroupId}
+                      className={`group border-b border-border last:border-0 border-l-2 transition-colors hover:bg-secondary/20 ${
+                        isConfirmed ? 'border-l-indigo-400' : 'border-l-amber-400'
+                      }`}
+                    >
+                      <td className="py-3 pl-4 pr-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarHue(
+                              group.customerName
+                            )}`}
+                          >
+                            {initials(group.customerName)}
                           </div>
-                        </td>
-                        <td className="py-3 px-2 text-foreground truncate font-mono text-xs">{group.loanNumber}</td>
-                        <td className="py-3 px-2">
-                          <span className="font-semibold text-foreground tabular-nums">
-                            {formatCurrency(group.totalAmount)}
+                          <span className="text-foreground font-medium truncate">{group.customerName}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 text-foreground truncate font-mono text-xs">{group.loanNumber}</td>
+                      <td className="py-3 px-2">
+                        <span className="font-semibold text-foreground tabular-nums">
+                          {formatCurrency(group.totalAmount)}
+                        </span>
+                        {isMultiSplit && (
+                          <span className="block text-xs text-muted-foreground font-normal">
+                            {group.splits.length} installments
                           </span>
-                          {isMultiSplit && (
-                            <span className="block text-xs text-muted-foreground font-normal">
-                              {group.splits.length} installments
-                            </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-2 hidden md:table-cell">
+                        <span className="inline-flex items-center gap-1.5 text-foreground truncate">
+                          {group.method === 'CASH' ? (
+                            <Wallet size={13} className="shrink-0 text-muted-foreground" />
+                          ) : (
+                            <Landmark size={13} className="shrink-0 text-muted-foreground" />
                           )}
-                        </td>
-                        <td className="py-3 px-2 hidden md:table-cell">
-                          <span className="inline-flex items-center gap-1.5 text-foreground truncate">
-                            {group.method === 'CASH' ? (
-                              <Wallet size={13} className="shrink-0 text-muted-foreground" />
-                            ) : (
-                              <Landmark size={13} className="shrink-0 text-muted-foreground" />
-                            )}
-                            {group.method === 'CASH' ? 'Cash' : 'Bank Transfer'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 text-foreground truncate hidden sm:table-cell">
-                          {new Date(group.paymentDate).toLocaleDateString(undefined, {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </td>
-                        <td className="py-3 px-2 font-mono text-xs text-muted-foreground truncate hidden lg:table-cell">
-                          {group.transactionGroupId.slice(0, 8)}…
-                        </td>
-                        <td className="py-3 px-2 text-foreground truncate hidden xl:table-cell">{group.officer}</td>
-                        <td className="py-3 px-2">
-                          <StatusBadge status={group.status.toLowerCase()} />
-                        </td>
-                        <td className="py-3 pl-2 pr-4">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {group.status === 'PENDING_VERIFICATION' ? (
-                              <Button
-                                size="sm"
-                                className="bg-primary hover:bg-primary/90"
-                                onClick={() => handleConfirmGroup(group)}
-                                disabled={confirmingGroupId === group.transactionGroupId}
-                              >
-                                {confirmingGroupId === group.transactionGroupId ? (
-                                  <RotateCw size={14} className="mr-1 animate-spin" />
-                                ) : (
-                                  <Check size={14} className="mr-1" />
-                                )}
-                                {confirmingGroupId === group.transactionGroupId ? 'Confirming…' : 'Confirm'}
-                              </Button>
-                            ) : !isMultiSplit ? (
-                              <span className="text-muted-foreground text-xs">—</span>
-                            ) : null}
-                            {isMultiSplit && (
-                              <button
-                                type="button"
-                                onClick={() => toggleExpand(group.transactionGroupId)}
-                                aria-expanded={isExpanded}
-                                aria-label={
-                                  isExpanded
-                                    ? `Collapse ${group.splits.length} installments`
-                                    : `Expand ${group.splits.length} installments`
-                                }
-                                title={isExpanded ? 'Hide installment breakdown' : 'Show installment breakdown'}
-                                className={`group/toggle flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
-                                  isExpanded
-                                    ? 'border-primary/30 bg-primary/10 text-primary'
-                                    : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
-                                }`}
-                              >
-                                <ChevronRight
-                                  size={15}
-                                  className={`transition-transform duration-200 ease-out ${
-                                    isExpanded ? 'rotate-90' : 'rotate-0 group-hover/toggle:translate-x-0.5'
-                                  }`}
-                                />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      {isExpanded &&
-                        group.splits.map((split, idx) => (
-                          <tr key={split.id} className="border-b border-border last:border-0 bg-secondary/20">
-                            <td className="py-2 pl-4 pr-2 text-xs text-muted-foreground truncate">
-                              <span className="inline-flex items-center gap-1.5">
-                                <span className="h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
-                                Installment {idx + 1}
-                              </span>
-                            </td>
-                            <td className="py-2 px-2"></td>
-                            <td className="py-2 px-2 text-xs text-foreground tabular-nums truncate">
-                              {formatCurrency(Number(split.amount))}
-                            </td>
-                            <td className="py-2 px-2 hidden md:table-cell"></td>
-                            <td className="py-2 px-2 hidden sm:table-cell text-xs text-muted-foreground truncate">
-                              int {formatCurrency(Number(split.interestApplied))} · prin{' '}
-                              {formatCurrency(Number(split.principalApplied))}
-                            </td>
-                            <td className="py-2 px-2 hidden lg:table-cell font-mono text-xs text-muted-foreground truncate">
-                              {split.receiptNumber}
-                            </td>
-                            <td className="py-2 px-2 hidden xl:table-cell"></td>
-                            <td className="py-2 px-2">
-                              <StatusBadge status={split.confirmationStatus.toLowerCase()} />
-                            </td>
-                            <td className="py-2 pl-2 pr-4"></td>
-                          </tr>
-                        ))}
-                    </>
+                          {group.method === 'CASH' ? 'Cash' : 'Bank Transfer'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-foreground truncate hidden sm:table-cell">
+                        {new Date(group.paymentDate).toLocaleDateString(undefined, {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      <td className="py-3 px-2 font-mono text-xs text-muted-foreground truncate hidden lg:table-cell">
+                        {group.transactionGroupId.slice(0, 8)}…
+                      </td>
+                      <td className="py-3 px-2 text-foreground truncate hidden xl:table-cell">{group.officer}</td>
+                      <td className="py-3 px-2">
+                        <StatusBadge status={group.status.toLowerCase()} />
+                      </td>
+                      <td className="py-3 pl-2 pr-4">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {group.status === 'PENDING_VERIFICATION' ? (
+                            <Button
+                              size="sm"
+                              className="bg-primary hover:bg-primary/90"
+                              onClick={() => handleConfirmGroup(group)}
+                              disabled={confirmingGroupId === group.transactionGroupId}
+                            >
+                              {confirmingGroupId === group.transactionGroupId ? (
+                                <RotateCw size={14} className="mr-1 animate-spin" />
+                              ) : (
+                                <Check size={14} className="mr-1" />
+                              )}
+                              {confirmingGroupId === group.transactionGroupId ? 'Confirming…' : 'Confirm'}
+                            </Button>
+                          ) : !isMultiSplit ? (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          ) : null}
+                          {isMultiSplit && (
+                            <button
+                              type="button"
+                              onClick={() => setDetailsGroup(group)}
+                              aria-label={`View ${group.splits.length} installments`}
+                              title="View installment breakdown"
+                              className="group/toggle flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                            >
+                              <ChevronRight
+                                size={15}
+                                className="transition-transform duration-150 group-hover/toggle:translate-x-0.5"
+                              />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -518,6 +473,7 @@ export default function RepaymentsPage() {
         )}
       </div>
 
+      {/* Record Payment modal */}
       {isModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]"
@@ -741,6 +697,140 @@ export default function RepaymentsPage() {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Installment details modal */}
+      {detailsGroup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]"
+          onClick={(e) => e.target === e.currentTarget && setDetailsGroup(null)}
+        >
+          <div className="w-full max-w-lg rounded-xl bg-card border border-border shadow-xl animate-in fade-in zoom-in-95 duration-150 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarHue(
+                    detailsGroup.customerName
+                  )}`}
+                >
+                  {initials(detailsGroup.customerName)}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground truncate">{detailsGroup.customerName}</h3>
+                  <p className="text-xs text-muted-foreground truncate">{detailsGroup.loanNumber}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailsGroup(null)}
+                aria-label="Close"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3 rounded-lg bg-secondary/40 border border-border p-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total amount</p>
+                  <p className="font-semibold text-foreground tabular-nums">
+                    {formatCurrency(detailsGroup.totalAmount)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <StatusBadge status={detailsGroup.status.toLowerCase()} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Method</p>
+                  <span className="inline-flex items-center gap-1.5 text-foreground">
+                    {detailsGroup.method === 'CASH' ? (
+                      <Wallet size={13} className="shrink-0 text-muted-foreground" />
+                    ) : (
+                      <Landmark size={13} className="shrink-0 text-muted-foreground" />
+                    )}
+                    {detailsGroup.method === 'CASH' ? 'Cash' : 'Bank Transfer'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Date</p>
+                  <p className="text-foreground">
+                    {new Date(detailsGroup.paymentDate).toLocaleDateString(undefined, {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Officer</p>
+                  <p className="text-foreground truncate">{detailsGroup.officer}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Transaction group</p>
+                  <p className="font-mono text-xs text-foreground truncate">
+                    {detailsGroup.transactionGroupId.slice(0, 8)}…
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+                  Installments ({detailsGroup.splits.length})
+                </p>
+                <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
+                  {detailsGroup.splits.map((split, idx) => (
+                    <div key={split.id} className="p-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">Installment {idx + 1}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          int {formatCurrency(Number(split.interestApplied))} · prin{' '}
+                          {formatCurrency(Number(split.principalApplied))}
+                        </p>
+                        <p className="text-xs font-mono text-muted-foreground truncate mt-0.5">
+                          {split.receiptNumber}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-foreground tabular-nums">
+                          {formatCurrency(Number(split.amount))}
+                        </p>
+                        <div className="mt-1">
+                          <StatusBadge status={split.confirmationStatus.toLowerCase()} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {detailsGroup.status === 'PENDING_VERIFICATION' && (
+              <div className="flex justify-end gap-2 p-4 border-t border-border shrink-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setDetailsGroup(null)}
+                  disabled={confirmingGroupId === detailsGroup.transactionGroupId}
+                >
+                  Close
+                </Button>
+                <Button
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => handleConfirmGroup(detailsGroup)}
+                  disabled={confirmingGroupId === detailsGroup.transactionGroupId}
+                >
+                  {confirmingGroupId === detailsGroup.transactionGroupId ? (
+                    <RotateCw size={14} className="mr-1 animate-spin" />
+                  ) : (
+                    <Check size={14} className="mr-1" />
+                  )}
+                  {confirmingGroupId === detailsGroup.transactionGroupId ? 'Confirming…' : 'Confirm'}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
