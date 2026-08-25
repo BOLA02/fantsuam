@@ -1160,7 +1160,7 @@ model SavingsAccount {
   openedAt DateTime  @default(now())
   closedAt DateTime?
 
-  customer Customer @relation(fields: [customerId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id], onUpdate: Restrict)
   branch   Branch?  @relation(fields: [branchId], references: [id])
 
   transactions SavingsTransaction[]

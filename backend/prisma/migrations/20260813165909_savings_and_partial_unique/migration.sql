@@ -54,7 +54,7 @@ CREATE TABLE `SavingsTransaction` (
 ALTER TABLE `Transaction` MODIFY `transactionType` ENUM('LOAN_DISBURSEMENT', 'REPAYMENT', 'INTEREST', 'PENALTY', 'PROCESSING_FEE', 'ADJUSTMENT', 'SAVINGS_DEPOSIT', 'SAVINGS_WITHDRAWAL') NOT NULL;
 
 -- AddForeignKey
-ALTER TABLE `SavingsAccount` ADD CONSTRAINT `SavingsAccount_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `Customer`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `SavingsAccount` ADD CONSTRAINT `SavingsAccount_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `Customer`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
 ALTER TABLE `SavingsAccount` ADD CONSTRAINT `SavingsAccount_branchId_fkey` FOREIGN KEY (`branchId`) REFERENCES `Branch`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
