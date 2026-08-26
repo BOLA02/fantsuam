@@ -12,7 +12,7 @@ const app = express();
 // 1. Global security configuration supporting multi-origin setups
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://console.fantsuam.com.ng/",
+  "https://console.fantsuam.com.ng",
   'https://microfinance.fantsuam.com.ng'
 ];
 
