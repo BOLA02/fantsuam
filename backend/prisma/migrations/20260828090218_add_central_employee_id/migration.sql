@@ -6,10 +6,10 @@
 
 */
 -- DropIndex
-DROP INDEX `SavingsAccount_activeCustomerId_key` ON `savingsaccount`;
+DROP INDEX `SavingsAccount_activeCustomerId_key` ON `SavingsAccount`;
 
 -- AlterTable
-ALTER TABLE `savingsaccount` DROP COLUMN `activeCustomerId`;
+ALTER TABLE `SavingsAccount` DROP COLUMN `activeCustomerId`;
 
 -- AlterTable
 ALTER TABLE `user` ADD COLUMN `centralEmployeeId` VARCHAR(191) NULL;
