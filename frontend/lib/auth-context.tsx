@@ -40,8 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const hasPermission = (permission: string) =>
-    user?.permissions?.includes(permission) ?? false;
+  const hasPermission = (permission: string) => {
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.central_role === 'loan.admin';
+    return isSuperAdmin || (user?.permissions?.includes(permission) ?? false);
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, hasPermission }}>

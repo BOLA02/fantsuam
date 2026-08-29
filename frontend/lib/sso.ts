@@ -33,7 +33,8 @@ export interface SessionUser {
   role: string;
   employeeNumber: string;
   email: string;
-  central_role: string[];
+  central_role: string;
+  
   permissions: string[];
 }
 

@@ -20,8 +20,8 @@ router.get('/', (0, asyncHandler_1.asyncHandler)(controller.getAll));
 router.get('/:id', (0, asyncHandler_1.asyncHandler)(controller.getById));
 // Everything that creates/modifies/deletes products stays staff-only.
 router.use(identity_middleware_1.requireIdentity, resolveLocalUser_middleware_1.resolveLocalUser);
-router.post('/', (0, permission_middleware_1.requirePermission)('loan.employees.manage'), (0, validate_middleware_1.validate)(loan_product_validation_1.createProductSchema), (0, asyncHandler_1.asyncHandler)(controller.create));
-router.put('/:id', (0, permission_middleware_1.requirePermission)('loan.employees.manage'), (0, validate_middleware_1.validate)(loan_product_validation_1.updateProductSchema), (0, asyncHandler_1.asyncHandler)(controller.update));
-router.patch('/:id/toggle', (0, permission_middleware_1.requirePermission)('loan.employees.manage'), (0, validate_middleware_1.validate)(loan_product_validation_1.toggleProductSchema), (0, asyncHandler_1.asyncHandler)(controller.toggle));
-router.delete('/:id', (0, permission_middleware_1.requirePermission)('loan.employees.manage'), (0, asyncHandler_1.asyncHandler)(controller.delete));
+router.post('/', (0, permission_middleware_1.requirePermission)('loan.loan-products.manage'), (0, validate_middleware_1.validate)(loan_product_validation_1.createProductSchema), (0, asyncHandler_1.asyncHandler)(controller.create));
+router.put('/:id', (0, permission_middleware_1.requirePermission)('loan.loan-products.manage'), (0, validate_middleware_1.validate)(loan_product_validation_1.updateProductSchema), (0, asyncHandler_1.asyncHandler)(controller.update));
+router.patch('/:id/toggle', (0, permission_middleware_1.requirePermission)('loan.loan-products.manage'), (0, validate_middleware_1.validate)(loan_product_validation_1.toggleProductSchema), (0, asyncHandler_1.asyncHandler)(controller.toggle));
+router.delete('/:id', (0, permission_middleware_1.requirePermission)('loan.loan-products.manage'), (0, asyncHandler_1.asyncHandler)(controller.delete));
 exports.default = router;
