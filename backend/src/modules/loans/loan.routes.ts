@@ -1,27 +1,34 @@
 import { Router } from 'express';
 import { LoanController } from './loan.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { authenticate } from '../../middleware/auth.middleware';
-import { authorize } from '../../middleware/role.middleware';
+import { requireIdentity } from '../../middleware/identity.middleware';
+import { requirePermission } from '../../middleware/permission.middleware';
+import { resolveLocalUser } from '../../middleware/resolveLocalUser.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { listLoansSchema, disburseLoanSchema } from './loan.validation';
-import { UserRole } from '@prisma/client';
 import { authenticateCustomer } from '../../middleware/customer-auth.middleware';
+
 const router = Router();
 const controller = new LoanController();
 
+// Customer-facing — untouched, separate auth system entirely
 router.get('/me', authenticateCustomer, asyncHandler(controller.getMine));
-router.use(authenticate);
 
-router.get('/', validate(listLoansSchema), asyncHandler(controller.getAll));
-router.get('/:id', asyncHandler(controller.getById));
+// Staff-facing — SSO from here down
+router.use(requireIdentity, asyncHandler(resolveLocalUser));
+
+router.get('/', requirePermission('loan.loans.manage', 'loan.loans.view'), validate(listLoansSchema), asyncHandler(controller.getAll));
+router.get('/:id', requirePermission('loan.loans.manage', 'loan.loans.view'), asyncHandler(controller.getById));
 
 // ASSUMPTION: disbursement restricted to SUPER_ADMIN, MANAGER, CASHIER —
 // not LOAN_OFFICER, since approval and payout are kept as separate controls.
-// Change if your actual policy differs.
+// Same granularity problem as repayments/confirm: the spec only has one
+// `loan.loans.manage` permission, but disbursement is a more sensitive
+// action than viewing a loan. Using a placeholder until Central Identity
+// confirms a distinct permission.
 router.patch(
   '/:id/disburse',
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.CASHIER),
+  requirePermission('loan.loans.manage'),
   validate(disburseLoanSchema),
   asyncHandler(controller.disburse)
 );

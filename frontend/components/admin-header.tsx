@@ -7,12 +7,8 @@ import { Bell, Search, Settings, LogOut, ChevronDown, Loader2, X } from 'lucide-
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
 import { ApiResponse } from '@/lib/api-types';
-
-interface UserProfile {
-  firstName: string;
-  lastName: string;
-  role: string;
-}
+import { logout } from '@/lib/sso';
+import { useAuth } from '@/lib/auth-context';
 
 // One row returned by the global search endpoint.
 // Adjust this shape to match whatever /search/global actually returns.
@@ -37,11 +33,9 @@ function groupByCategory(results: GlobalSearchResult[]) {
 
 export function AdminHeader() {
   const router = useRouter();
+  const { user } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [initials, setInitials] = useState('AD');
 
   // ---- Global search state ----
   const [query, setQuery] = useState('');
@@ -107,29 +101,6 @@ export function AdminHeader() {
   };
 
   useEffect(() => {
-    async function fetchActiveUser() {
-      try {
-        const response = await apiClient<ApiResponse<any>>('/auth/me');
-        const userData = response.data?.user || response.data;
-
-        if (userData) {
-          setProfile({
-            firstName: userData.firstName || 'Admin',
-            lastName: userData.lastName || 'User',
-            role: userData.role ? userData.role.replace('_', ' ') : 'Staff',
-          });
-
-          const fChar = userData.firstName?.[0] || 'A';
-          const lChar = userData.lastName?.[0] || 'D';
-          setInitials(`${fChar}${lChar}`.toUpperCase());
-        }
-      } catch (err) {
-        console.error('Failed to parse profile context:', err);
-      }
-    }
-
-    fetchActiveUser();
-
     function handleClickOutside(event: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
@@ -143,10 +114,13 @@ export function AdminHeader() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; Secure';
-    router.push('/auth/login');
+    logout(); // clears token, redirects to Console
   };
+
+  const initials = user
+    ? `${user.firstName?.[0] || 'A'}${user.lastName?.[0] || 'D'}`.toUpperCase()
+    : 'AD';
+  const displayRole = user?.role ? user.role.replace('_', ' ') : 'Staff';
 
   const grouped = groupByCategory(results);
   const hasResults = results.length > 0;
@@ -244,10 +218,10 @@ export function AdminHeader() {
               </div>
               <div className="hidden sm:block text-sm text-left">
                 <p className="font-semibold text-foreground">
-                  {profile ? `${profile.firstName} ${profile.lastName}` : 'Syncing Profile…'}
+                  {user ? `${user.firstName} ${user.lastName}` : 'Syncing Profile…'}
                 </p>
                 <p className="text-xs font-medium capitalize text-muted-foreground">
-                  {profile ? profile.role.toLowerCase() : 'Please Wait'}
+                  {user ? displayRole.toLowerCase() : 'Please Wait'}
                 </p>
               </div>
               <ChevronDown
@@ -260,10 +234,10 @@ export function AdminHeader() {
               <div className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-card shadow-lg py-1 z-40">
                 <div className="px-4 py-3 border-b border-border sm:hidden">
                   <p className="font-medium text-foreground text-sm">
-                    {profile ? `${profile.firstName} ${profile.lastName}` : 'Admin User'}
+                    {user ? `${user.firstName} ${user.lastName}` : 'Admin User'}
                   </p>
                   <p className="text-xs text-muted-foreground uppercase">
-                    {profile ? profile.role : 'Super Admin'}
+                    {user ? displayRole : 'Super Admin'}
                   </p>
                 </div>
                 <Link

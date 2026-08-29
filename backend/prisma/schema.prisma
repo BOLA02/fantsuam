@@ -182,7 +182,9 @@ model Branch {
 }
 
 model User {
-  id             String @id @default(uuid())
+  id                String  @id @default(uuid())
+  centralEmployeeId String? @unique
+
   employeeNumber String @unique
 
   firstName String
@@ -213,13 +215,11 @@ model User {
   applicationReviews    ApplicationReview[]
   applicationStatusLogs ApplicationStatusHistory[]
   documentsUploaded     Document[]
-   savingsTransactionsPerformed SavingsTransaction[] @relation("SavingsTransactionPerformedBy")
+  savingsTransactionsPerformed SavingsTransaction[] @relation("SavingsTransactionPerformedBy")
 
   loanDisbursements LoanDisbursement[]
 
   loanStatusHistory LoanStatusHistory[]
-
-  
 
   repaymentsReceived  Repayment[] @relation("RepaymentReceivedBy")
   repaymentsConfirmed Repayment[] @relation("RepaymentConfirmedBy")
@@ -229,6 +229,7 @@ model User {
   @@index([branchId])
   @@index([email])
   @@index([employeeNumber])
+  @@index([centralEmployeeId])
 }
 
 model Setting {

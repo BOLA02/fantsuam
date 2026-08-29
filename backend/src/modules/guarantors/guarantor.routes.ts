@@ -1,11 +1,15 @@
 // src/modules/guarantors/guarantor.routes.ts
+// FULL FILE — migrated to Central Identity SSO
+// Public + customer-facing routes untouched. Staff routes now use
+// requireIdentity + resolveLocalUser + requirePermission('loan.guarantors.manage')
 
 import { Router } from "express";
 
 import guarantorController from "./guarantor.controller";
 
-import { authenticate } from "../../middleware/auth.middleware";
-import { authorize } from "../../middleware/role.middleware";
+import { requireIdentity } from "../../middleware/identity.middleware";
+import { resolveLocalUser } from "../../middleware/resolveLocalUser.middleware";
+import { requirePermission } from "../../middleware/permission.middleware";
 import { validate } from "../../middleware/validate.middleware";
 import { authenticateCustomer } from "../../middleware/customer-auth.middleware";
 import {
@@ -14,11 +18,9 @@ import {
   idParamSchema,
 } from "./guarantor.validation";
 
-import { UserRole } from "@prisma/client";
 import { requireApplicationFee } from "../../middleware/application-fee.middleware";
 
 const router = Router();
-
 
 router.post(
   "/me",
@@ -40,44 +42,10 @@ router.post(
   guarantorController.create
 );
 
-// Everything below requires staff authentication
-router.use(authenticate);
+// Everything below requires staff SSO authentication
+router.use(requireIdentity, resolveLocalUser);
 
-router.get(
-  "/",
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.LOAN_OFFICER,
-    UserRole.CASHIER
-  ),
-  guarantorController.getAll
-);
-
-router.get(
-  "/:id",
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.LOAN_OFFICER,
-    UserRole.CASHIER
-  ),
-  validate(idParamSchema),
-  guarantorController.getById
-);
-
-router.patch(
-  "/:id",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.LOAN_OFFICER),
-  validate(updateGuarantorSchema),
-  guarantorController.update
-);
-
-router.delete(
-  "/:id",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER),
-  validate(idParamSchema),
-  guarantorController.delete
-);
-
-export default router;
+router.get("/", requirePermission("loan.employees.manage"), guarantorController.getAll);
+router.get("/:id", requirePermission("loan.employees.manage"), validate(idParamSchema), guarantorController.getById);
+router.patch("/:id", requirePermission("loan.employees.manage"), validate(updateGuarantorSchema), guarantorController.update);
+router.delete("/:id", requirePermission("loan.employees.manage"), validate(idParamSchema), guarantorController.delete);

@@ -1,13 +1,12 @@
-// src/modules/loan-applications/loan-application.routes.ts
-// FULL FILE — router.use(authenticate) moved below the public POST /
-
 import { Router } from "express";
 
 import loanApplicationController from "./loan-application.controller";
 import { authenticateCustomer } from "../../middleware/customer-auth.middleware";
-import { authenticate } from "../../middleware/auth.middleware";
-import { authorize } from "../../middleware/role.middleware";
+import { requireIdentity } from "../../middleware/identity.middleware";
+import { requirePermission } from "../../middleware/permission.middleware";
+import { resolveLocalUser } from "../../middleware/resolveLocalUser.middleware";
 import { validate } from "../../middleware/validate.middleware";
+import { asyncHandler } from "../../utils/asyncHandler";
 
 import {
   createLoanApplicationSchema,
@@ -19,14 +18,11 @@ import {
   idParamSchema,
 } from "./loan-application.validation";
 
-import { UserRole } from "@prisma/client";
 import { requireApplicationFee } from "../../middleware/application-fee.middleware";
 
 const router = Router();
 
-
-// Customer self-service — logged-in returning customer applies directly,
-// no application fee, no re-registration
+// Customer self-service — untouched, separate auth system
 router.post(
   "/me",
   authenticateCustomer,
@@ -39,6 +35,7 @@ router.get(
   authenticateCustomer,
   loanApplicationController.getMine
 );
+
 // Public — customer submits application right after customer creation
 router.post(
   "/",
@@ -47,87 +44,68 @@ router.post(
   loanApplicationController.create
 );
 
-// Everything below requires staff authentication
-router.use(authenticate);
+// Everything below requires staff SSO authentication
+router.use(requireIdentity, asyncHandler(resolveLocalUser));
 
 router.get(
   "/",
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.LOAN_OFFICER,
-    UserRole.CASHIER
-  ),
+  requirePermission("loan.applications.manage", "loan.applications.view"),
   loanApplicationController.getAll
 );
 
 router.get(
   "/:id",
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.LOAN_OFFICER,
-    UserRole.CASHIER
-  ),
+  requirePermission("loan.applications.manage" , "loan.applications.view"),
   validate(idParamSchema),
   loanApplicationController.getById
 );
 
 router.patch(
   "/:id",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.LOAN_OFFICER),
+  requirePermission("loan.applications.manage"),
   validate(updateLoanApplicationSchema),
   loanApplicationController.update
 );
 
+
 router.patch(
   "/:id/assign",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER),
+  requirePermission("loan.applications.manage"),
   validate(assignOfficerSchema),
   loanApplicationController.assignOfficer
 );
 
 router.patch(
   "/:id/status",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.LOAN_OFFICER),
+  requirePermission("loan.applications.manage"),
   validate(changeStatusSchema),
   loanApplicationController.changeStatus
 );
 
 router.delete(
   "/:id",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER),
+  requirePermission("loan.applications.manage"),
   validate(idParamSchema),
   loanApplicationController.cancel
 );
 
 router.post(
   "/:id/reviews",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.LOAN_OFFICER),
+  requirePermission("loan.applications.manage"),
   validate(createReviewSchema),
   loanApplicationController.addReview
 );
 
 router.get(
   "/:id/reviews",
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.LOAN_OFFICER,
-    UserRole.CASHIER
-  ),
+  requirePermission("loan.applications.manage"),
   validate(idParamSchema),
   loanApplicationController.getReviews
 );
 
 router.get(
   "/:id/status-history",
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.LOAN_OFFICER,
-    UserRole.CASHIER
-  ),
+  requirePermission("loan.applications.manage"),
   validate(idParamSchema),
   loanApplicationController.getStatusHistory
 );

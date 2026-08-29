@@ -1,9 +1,17 @@
+// src/modules/users/user.routes.ts
+// FULL FILE — migrated to Central Identity SSO
+// loan.employees.manage is Admin-only in the real scheme (Manager does not
+// have it) — every route here uses that single permission, no split.
+// changePassword stays self-service (auth only) — reconsider whether local
+// password change still makes sense once SSO is the sole login path.
+
 import { Router } from "express";
 
 import userController from "./user.controller";
 
-import { authenticate } from "../../middleware/auth.middleware";
-import { authorize } from "../../middleware/role.middleware";
+import { requireIdentity } from "../../middleware/identity.middleware";
+import { resolveLocalUser } from "../../middleware/resolveLocalUser.middleware";
+import { requirePermission } from "../../middleware/permission.middleware";
 import { validate } from "../../middleware/validate.middleware";
 
 import {
@@ -13,15 +21,13 @@ import {
   changePasswordSchema,
 } from "./user.validation";
 
-import { UserRole } from "@prisma/client";
-
 const router = Router();
 
-router.use(authenticate);
+router.use(requireIdentity, resolveLocalUser);
 
 router.get(
   "/",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER),
+  requirePermission("loan.employees.manage"),
   userController.getAll
 );
 
@@ -33,40 +39,40 @@ router.patch(
 
 router.post(
   "/",
-  authorize(UserRole.SUPER_ADMIN),
+  requirePermission("loan.employees.manage"),
   validate(createUserSchema),
   userController.create
 );
 
 router.get(
   "/:id",
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER),
+  requirePermission("loan.employees.manage"),
   userController.getById
 );
 
 router.patch(
   "/:id",
-  authorize(UserRole.SUPER_ADMIN),
+  requirePermission("loan.employees.manage"),
   validate(updateUserSchema),
   userController.update
 );
 
 router.patch(
   "/:id/reset-password",
-  authorize(UserRole.SUPER_ADMIN),
+  requirePermission("loan.employees.manage"),
   validate(resetPasswordSchema),
   userController.resetPassword
 );
 
 router.patch(
   "/:id/status",
-  authorize(UserRole.SUPER_ADMIN),
+  requirePermission("loan.employees.manage"),
   userController.changeStatus
 );
 
 router.delete(
   "/:id",
-  authorize(UserRole.SUPER_ADMIN),
+  requirePermission("loan.employees.manage"),
   userController.delete
 );
 

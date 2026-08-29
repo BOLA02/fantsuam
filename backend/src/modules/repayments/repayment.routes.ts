@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { RepaymentController } from './repayment.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { authenticate } from '../../middleware/auth.middleware';
-import { authorize } from '../../middleware/role.middleware';
+import { requireIdentity } from '../../middleware/identity.middleware';
+import { requirePermission } from '../../middleware/permission.middleware';
+import { resolveLocalUser } from '../../middleware/resolveLocalUser.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
 import {
   recordCashPaymentSchema,
@@ -11,35 +12,35 @@ import {
   listRepaymentsSchema,
   ledgerParamSchema,
 } from './repayment.validation';
-import { UserRole } from '@prisma/client';
 
 const router = Router();
 const controller = new RepaymentController();
 
-router.use(authenticate);
+router.use(requireIdentity, asyncHandler(resolveLocalUser));
 
-router.get('/', validate(listRepaymentsSchema), asyncHandler(controller.getAll));
-router.get('/ledger/:loanId', validate(ledgerParamSchema), asyncHandler(controller.getLedger));
+router.get('/', requirePermission('loan.repayments.manage', 'loan.repayments.record'), validate(listRepaymentsSchema), asyncHandler(controller.getAll));
+router.get('/ledger/:loanId', requirePermission('loan.repayments.manage', 'loan.repayments.record'), validate(ledgerParamSchema), asyncHandler(controller.getLedger));
 
 router.post(
   '/cash',
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.LOAN_OFFICER),
+  requirePermission('loan.repayments.manage', 'loan.repayments.record'),
   validate(recordCashPaymentSchema),
   asyncHandler(controller.recordCash)
 );
 
 router.post(
   '/bank-transfer',
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.LOAN_OFFICER),
+  requirePermission('loan.repayments.manage', 'loan.repayments.record'),
   validate(reportBankTransferSchema),
   asyncHandler(controller.reportBankTransfer)
 );
 
-// ASSUMPTION: only admins/managers confirm — not the officer who reported
-// it, to keep the two-step verification meaningful.
+// Confirm requires full manage — Loan Officer's .record permission
+// intentionally does not include confirm, preserving two-step verification
+// (the person recording a transfer shouldn't be the one confirming it).
 router.patch(
   '/:id/confirm',
-  authorize(UserRole.SUPER_ADMIN, UserRole.MANAGER),
+  requirePermission('loan.repayments.manage'),
   validate(confirmBankTransferSchema),
   asyncHandler(controller.confirm)
 );

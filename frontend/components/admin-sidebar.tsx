@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { menuItems } from '@/lib/nav-menu';
+import { useAuth } from '@/lib/auth-context';
 
 interface AdminSidebarProps {
   open: boolean;
@@ -15,6 +16,11 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ open, onToggle }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { hasPermission } = useAuth();
+
+  const visibleItems = menuItems.filter(
+    (item) => !item.permission || hasPermission(item.permission)
+  );
 
   return (
     <aside className={cn(
@@ -65,7 +71,7 @@ export function AdminSidebar({ open, onToggle }: AdminSidebarProps) {
 
       {/* Menu Links Map */}
       <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-        {menuItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           return (

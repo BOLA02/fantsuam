@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { UserRole } from '@prisma/client';
 import { SavingsController } from './savings.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { authenticate } from '../../middleware/auth.middleware';
-import { authorize } from '../../middleware/role.middleware';
+import { requireIdentity } from '../../middleware/identity.middleware';
+import { requirePermission } from '../../middleware/permission.middleware';
+import { resolveLocalUser } from '../../middleware/resolveLocalUser.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
 import {
   provisionSavingsAccountSchema,
@@ -13,77 +13,58 @@ import {
   listSavingsAccountsSchema,
   listTransactionsSchema,
 } from './savings.validation';
+
 const router = Router();
 const controller = new SavingsController();
 
+router.use(requireIdentity, asyncHandler(resolveLocalUser));
 
-router.use(authenticate);
-
-router.get(
-  '/summary',
-  asyncHandler(controller.getSummary)
-);
+router.get('/summary', requirePermission('loan.savings.manage'), asyncHandler(controller.getSummary));
 
 router.get(
   '/customers/lookup',
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.LOAN_OFFICER,
-    UserRole.CASHIER
-  ),
+  requirePermission('loan.savings.manage'),
   asyncHandler(controller.lookupCustomer)
 );
 
 router.get(
   '/accounts',
+  requirePermission('loan.savings.manage'),
   validate(listSavingsAccountsSchema),
   asyncHandler(controller.getAllAccounts)
 );
 
-
-
 router.post(
   '/accounts',
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.CASHIER
-  ),
+  requirePermission('loan.savings.manage'),
   validate(provisionSavingsAccountSchema),
   asyncHandler(controller.provisionAccount)
 );
+
 router.get(
   '/accounts/:id',
+  requirePermission('loan.savings.manage'),
   validate(accountIdParamSchema),
   asyncHandler(controller.getAccount)
 );
 
 router.get(
   '/accounts/:id/transactions',
+  requirePermission('loan.savings.manage'),
   validate(listTransactionsSchema),
   asyncHandler(controller.getTransactions)
 );
 
 router.post(
   '/deposits',
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.CASHIER,
-    UserRole.LOAN_OFFICER
-  ),
+  requirePermission('loan.savings.manage'),
   validate(depositSchema),
   asyncHandler(controller.deposit)
 );
 
 router.post(
   '/withdrawals',
-  authorize(
-    UserRole.SUPER_ADMIN,
-    UserRole.MANAGER,
-    UserRole.CASHIER
-  ),
+  requirePermission('loan.savings.manage'),
   validate(withdrawalSchema),
   asyncHandler(controller.withdrawal)
 );
