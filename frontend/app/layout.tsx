@@ -1,11 +1,10 @@
-
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { AuthProvider } from '@/lib/auth-context'
 
 export const metadata: Metadata = {
   title: 'Microfinance Loan Management System',
   description: 'Fast, Secure & Reliable Microfinance Loans',
-
   icons: {
     icon: [
       {
@@ -16,9 +15,7 @@ export const metadata: Metadata = {
         url: '/icon-light-32x32.png',
         media: '(prefers-color-scheme: dark)',
       },
-    
     ],
-    
   },
 }
 
@@ -31,7 +28,6 @@ export const viewport: Viewport = {
   userScalable: true,
 }
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -40,8 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-background">
       <body className="antialiased">
-        {children}
-       
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )

@@ -1,9 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validate = void 0;
-const zod_1 = require("zod"); // 🟢 Import the raw z namespace
-const validate = (schema) => // 🟢 FIXED: Using z.ZodType directly (no deprecation warnings)
- (req, res, next) => {
+const zod_1 = require("zod");
+const validate = (schema) => (req, res, next) => {
     try {
         schema.parse({
             body: req.body,
@@ -17,7 +16,7 @@ const validate = (schema) => // 🟢 FIXED: Using z.ZodType directly (no depreca
             return res.status(400).json({
                 success: false,
                 message: "Validation failed",
-                errors: error.flatten().fieldErrors, // Returns clear field-specific errors
+                errors: error.flatten().fieldErrors,
             });
         }
         next(error);
