@@ -9,6 +9,14 @@ export const requirePermission =
       res.status(401).json({ success: false, message: "Unauthenticated" });
       return;
     }
+    const isSuperAdmin =
+      identity.role === "loan.admin" ||
+      identity.central_role?.includes("central.super_admin") ||
+      identity.central_role?.includes("loan.admin");
+    if (isSuperAdmin) {
+      next();
+      return;
+    }
     const hasOne = anyOf.some((perm) => identity.permissions.includes(perm));
     if (!hasOne) {
       res.status(403).json({ success: false, message: "Insufficient permissions", required: anyOf });

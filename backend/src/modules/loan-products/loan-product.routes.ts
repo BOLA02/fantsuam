@@ -24,8 +24,8 @@ router.get('/:id', asyncHandler(controller.getById));
 router.use(requireIdentity, resolveLocalUser);
 
 
-router.post('/', requirePermission('loan.employees.manage'), validate(createProductSchema), asyncHandler(controller.create));
-router.put('/:id', requirePermission('loan.employees.manage'), validate(updateProductSchema), asyncHandler(controller.update));
-router.patch('/:id/toggle', requirePermission('loan.employees.manage'), validate(toggleProductSchema), asyncHandler(controller.toggle));
-router.delete('/:id', requirePermission('loan.employees.manage'), asyncHandler(controller.delete));
+router.post('/', requirePermission('loan.loan-products.manage'), validate(createProductSchema), asyncHandler(controller.create));
+router.put('/:id', requirePermission('loan.loan-products.manage'), validate(updateProductSchema), asyncHandler(controller.update));
+router.patch('/:id/toggle', requirePermission('loan.loan-products.manage'), validate(toggleProductSchema), asyncHandler(controller.toggle));
+router.delete('/:id', requirePermission('loan.loan-products.manage'), asyncHandler(controller.delete));
 export default router;
