@@ -49,3 +49,5 @@ router.get("/", requirePermission("loan.employees.manage"), guarantorController.
 router.get("/:id", requirePermission("loan.employees.manage"), validate(idParamSchema), guarantorController.getById);
 router.patch("/:id", requirePermission("loan.employees.manage"), validate(updateGuarantorSchema), guarantorController.update);
 router.delete("/:id", requirePermission("loan.employees.manage"), validate(idParamSchema), guarantorController.delete);
+
+export default router;
