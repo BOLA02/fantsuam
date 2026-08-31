@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
+import { Public_Sans, IBM_Plex_Sans } from 'next/font/google';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Microfinance Loan Management System',
@@ -19,6 +21,20 @@ export const metadata: Metadata = {
   },
 }
 
+
+const publicSans = Public_Sans({
+  subsets: ['latin'],
+  variable: '--font-public-sans',
+  display: 'swap',
+});
+
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-ibm-plex-sans',
+  display: 'swap',
+});
+
 export const viewport: Viewport = {
   colorScheme: 'light',
   themeColor: [
@@ -34,10 +50,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background">
+    <html lang="en" className={`${publicSans.variable} ${ibmPlexSans.variable}`} >
       <body className="antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )
 }
+// app/layout.tsx
+
+
+

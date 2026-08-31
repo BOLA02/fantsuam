@@ -202,10 +202,7 @@ export function AdminHeader() {
 
         {/* Notifications and Profile */}
         <div className="flex items-center gap-4">
-          <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
-            <Bell size={20} />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
-          </button>
+          
 
           {/* User Popover Controls */}
           <div className="relative pl-4 border-l border-border" ref={userMenuRef}>
