@@ -386,7 +386,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         margin: '0 0 6px',
                         fontSize: '20px',
                         fontWeight: 'bold',
-                        color: '#1e293b',
+                        color: '#2c2a7a'
                     }}
                 >
                     {getHeadingText()}
@@ -497,8 +497,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                                         border: 'none',
                                         borderRadius:
                                             '6px',
-                                        backgroundColor:
-                                            '#2563eb',
+                                        backgroundColor: '#2c2a7a',
                                         color: '#fff',
                                         fontWeight:
                                             '600',

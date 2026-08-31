@@ -243,7 +243,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Admin Performance Dashboard" />
+      <PageHeader title="Performance Dashboard" />
 
       {error && (
         <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm flex items-center gap-2">

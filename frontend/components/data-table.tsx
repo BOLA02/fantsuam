@@ -62,13 +62,13 @@ export function DataTable<T extends { id: string }>({
   return (
     <div className={cn('overflow-x-auto rounded-lg border border-border bg-card', className)}>
       <table className="w-full">
-        <thead className="border-b border-border bg-secondary/50">
+        <thead className="border-b border-border bg-[#2c2a7a]/[0.06]">
           <tr>
             {columns.map((column) => (
               <th
                 key={String(column.key)}
-                className={cn('px-6 py-3 text-left text-sm font-semibold text-foreground', {
-                  'cursor-pointer hover:bg-secondary': column.sortable,
+                className={cn('px-6 py-3 text-left text-sm font-semibold text-[#2c2a7a]', {
+                  'cursor-pointer hover:bg-[#2c2a7a]/[0.1]': column.sortable,
                 })}
                 onClick={() => column.sortable && handleSort(String(column.key))}
                 style={{ width: column.width }}
@@ -87,7 +87,7 @@ export function DataTable<T extends { id: string }>({
           {sortedData.map((row, idx) => (
             <tr
               key={row.id}
-              className={cn('border-b border-border transition-colors hover:bg-secondary/50', {
+              className={cn('border-b border-border transition-colors hover:bg-[#2c2a7a]/[0.04]', {
                 'cursor-pointer': onRowClick,
               })}
               onClick={() => onRowClick?.(row)}

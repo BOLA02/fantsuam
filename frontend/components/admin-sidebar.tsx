@@ -33,16 +33,16 @@ export function AdminSidebar({ open, onToggle }: AdminSidebarProps) {
         />
       )}
 
-      <aside
-        className={cn(
-          'flex h-screen flex-col overflow-hidden bg-white text-[#3A3A34] transition-all duration-300',
-          'fixed inset-y-0 left-0 z-50 w-64',
-          open ? 'translate-x-0' : '-translate-x-full',
-          'md:static md:translate-x-0 md:z-auto md:shadow-none',
-          open ? 'md:w-64' : 'md:w-20',
-          'shadow-xl'
-        )}
-      >
+   <aside
+  className={cn(
+    'flex h-screen flex-col overflow-hidden bg-white text-[#3A3A34] transition-all duration-300',
+    'fixed inset-y-0 left-0 z-50 w-64',
+    open ? 'translate-x-0' : '-translate-x-full',
+    'md:static md:translate-x-0 md:z-auto md:shadow-none',
+    open ? 'md:w-64' : 'md:w-20'
+    // removed: 'shadow-xl'  ← this was rendering as a visible right-edge line
+  )}
+>
         {/* Brand Header — no border, blends straight into the sidebar */}
         <div className="flex h-16 flex-shrink-0 items-center justify-between px-4">
           <Link

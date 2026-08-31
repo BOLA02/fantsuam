@@ -183,7 +183,7 @@ export function TransactionHistoryModal({
                 margin: 0,
                 fontSize: '21px',
                 fontWeight: 700,
-                color: '#1e293b',
+                color: '#2c2a7a',
               }}
             >
               Transaction History
@@ -258,7 +258,7 @@ export function TransactionHistoryModal({
               style={{
                 fontSize: '20px',
                 fontWeight: 700,
-                color: '#0f766e',
+                color: '#2c2a7a'
               }}
             >
               {formatMoney(account.balance)}

@@ -34,11 +34,11 @@ const initials = (first?: string, last?: string) =>
   `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase() || '—';
 
 const AVATAR_PALETTE = [
-  { bg: '#eef2ff', fg: '#4338ca' },
+  { bg: '#eeeefa', fg: '#2c2a7a' },
   { bg: '#ecfdf5', fg: '#047857' },
   { bg: '#fef3f2', fg: '#b91c1c' },
   { bg: '#fffbeb', fg: '#b45309' },
-  { bg: '#f0f9ff', fg: '#0369a1' },
+  { bg: '#eeeefa', fg: '#3f3ca3' },
   { bg: '#fdf4ff', fg: '#a21caf' },
 ];
 const avatarStyle = (seed: string) => {
@@ -50,7 +50,7 @@ const avatarStyle = (seed: string) => {
 const STATUS_STYLES: Record<string, { dot: string; bg: string; text: string }> = {
   ACTIVE: { dot: '#10b981', bg: '#ecfdf5', text: '#065f46' },
   INACTIVE: { dot: '#94a3b8', bg: '#f1f5f9', text: '#475569' },
-  FROZEN: { dot: '#3b82f6', bg: '#eff6ff', text: '#1d4ed8' },
+  FROZEN: { dot: '#2c2a7a', bg: '#eeeefa', text: '#2c2a7a' },
 };
 
 const formatDateTime = (iso: string) => {
@@ -132,13 +132,13 @@ export default function SavingsAdminPage() {
   const hasAnyAccounts = accounts.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#fcfaf2] p-6 md:p-8">
+    <div className="min-h-screen bg-white p-6 md:p-8">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl md:text-[28px] font-bold text-[#1a2b49]">
+        <h1 className="text-2xl md:text-[28px] font-display font-semibold text-[#2c2a7a]">
           Savings Vault Administration
         </h1>
-        <p className="mt-1 text-sm text-[#65758a]">
+        <p className="mt-1 text-sm text-[#5C5849]">
           Manage member savings accounts, record deposits and withdrawals, and review transaction history.
         </p>
       </div>
@@ -147,9 +147,9 @@ export default function SavingsAdminPage() {
       <SavingsSummary summary={summary} fallbackCount={accounts.length} />
 
       {/* Table card */}
-      <div className="overflow-hidden rounded-xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+      <div className="overflow-hidden rounded-xl border border-[#EDECE6] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
         {/* Toolbar */}
-        <div className="flex flex-col gap-3 border-b border-[#f1f3f7] p-4 md:flex-row md:items-center md:justify-between md:p-5">
+        <div className="flex flex-col gap-3 border-b border-[#EDECE6] p-4 md:flex-row md:items-center md:justify-between md:p-5">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-72">
               <Search
@@ -162,7 +162,7 @@ export default function SavingsAdminPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Search savings accounts"
-                className="w-full rounded-lg border border-[#e2e8f0] py-2.5 pl-9 pr-3 text-sm text-[#1e293b] outline-none transition focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/15"
+                className="w-full rounded-lg border border-[#e2e8f0] py-2.5 pl-9 pr-3 text-sm text-[#1e293b] outline-none transition focus:border-[#2c2a7a] focus:ring-2 focus:ring-[#2c2a7a]/15"
               />
             </div>
 
@@ -171,7 +171,7 @@ export default function SavingsAdminPage() {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                 aria-label="Filter by status"
-                className="w-full appearance-none rounded-lg border border-[#e2e8f0] bg-white py-2.5 pl-3 pr-8 text-sm text-[#334155] outline-none transition focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/15"
+                className="w-full appearance-none rounded-lg border border-[#e2e8f0] bg-white py-2.5 pl-3 pr-8 text-sm text-[#334155] outline-none transition focus:border-[#2c2a7a] focus:ring-2 focus:ring-[#2c2a7a]/15"
               >
                 <option value="ALL">All statuses</option>
                 <option value="ACTIVE">Active</option>
@@ -187,7 +187,7 @@ export default function SavingsAdminPage() {
 
           <button
             onClick={handleProvisionNewCore}
-            className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] active:bg-[#1e40af]"
+            className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#2c2a7a] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#232167] active:bg-[#1c1a52]"
           >
             <Plus size={16} strokeWidth={2.5} />
             New Savings Account
@@ -202,7 +202,7 @@ export default function SavingsAdminPage() {
         ) : (
           <>
             {/* Mobile / tablet: stacked cards, no table, no horizontal scroll */}
-            <div className="divide-y divide-[#f8fafc] md:hidden">
+            <div className="divide-y divide-[#F5F5F3] md:hidden">
               {filteredAccounts.map((account) => (
                 <MobileAccountCard
                   key={account.id}
@@ -224,7 +224,7 @@ export default function SavingsAdminPage() {
                 <col className="w-[23%]" />
               </colgroup>
               <thead>
-                <tr className="border-b border-[#f1f3f7] bg-[#fafbfd]">
+                <tr className="border-b border-[#EDECE6] bg-[#2c2a7a]/[0.06]">
                   <Th>Account</Th>
                   <Th>Balance</Th>
                   <Th>Last Activity</Th>
@@ -244,7 +244,7 @@ export default function SavingsAdminPage() {
                   return (
                     <tr
                       key={account.id}
-                      className="group border-b border-[#f8fafc] transition-colors last:border-b-0 hover:bg-[#fafbff]"
+                      className="group border-b border-[#F5F5F3] transition-colors last:border-b-0 hover:bg-[#2c2a7a]/[0.04]"
                     >
                       {/* Account: avatar + name + code */}
                       <td className="px-4 py-4 lg:px-5">
@@ -268,7 +268,7 @@ export default function SavingsAdminPage() {
 
                       {/* Balance */}
                       <td className="px-4 py-4 lg:px-5">
-                        <span className="block truncate font-semibold tabular-nums text-[#0f766e]">
+                        <span className="block truncate font-semibold tabular-nums text-[#2c2a7a]">
                           {currency(account.balance)}
                         </span>
                       </td>
@@ -338,7 +338,7 @@ export default function SavingsAdminPage() {
                           <IconActionButton
                             label="History"
                             icon={<HistoryIcon size={16} />}
-                            color="#64748b"
+                            color="#2c2a7a"
                             onClick={() => openTransactionHistory(account)}
                           />
                         </div>
@@ -352,7 +352,7 @@ export default function SavingsAdminPage() {
         )}
 
         {!loading && filteredAccounts.length > 0 && (
-          <div className="border-t border-[#f1f3f7] px-5 py-3 text-xs text-[#94a3b8]">
+          <div className="border-t border-[#EDECE6] px-5 py-3 text-xs text-[#94a3b8]">
             Showing {filteredAccounts.length} of {accounts.length} account
             {accounts.length === 1 ? '' : 's'}
           </div>
@@ -382,7 +382,7 @@ export default function SavingsAdminPage() {
 function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
   return (
     <th
-      className={`px-4 py-4 text-xs font-semibold uppercase tracking-wide text-[#475569] lg:px-5 ${
+      className={`px-4 py-4 text-xs font-semibold uppercase tracking-wide text-[#2c2a7a] lg:px-5 ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >
@@ -463,7 +463,7 @@ function MobileAccountCard({
 
       <div className="mt-3 flex items-center justify-between">
         <span className="text-xs text-[#94a3b8]">Balance</span>
-        <span className="font-semibold tabular-nums text-[#0f766e]">{currency(account.balance)}</span>
+        <span className="font-semibold tabular-nums text-[#2c2a7a]">{currency(account.balance)}</span>
       </div>
 
       <div className="mt-2 flex items-center justify-between">
@@ -505,7 +505,7 @@ function MobileAccountCard({
         </button>
         <button
           onClick={onHistory}
-          className="inline-flex items-center justify-center gap-1.5 rounded-md border border-[#64748b] px-2 py-2 text-xs font-semibold text-[#64748b] active:bg-[#64748b] active:text-white"
+          className="inline-flex items-center justify-center gap-1.5 rounded-md border border-[#2c2a7a] px-2 py-2 text-xs font-semibold text-[#2c2a7a] active:bg-[#2c2a7a] active:text-white"
         >
           <HistoryIcon size={14} /> History
         </button>
@@ -517,17 +517,17 @@ function MobileAccountCard({
 function TableSkeleton() {
   return (
     <div className="animate-pulse p-5">
-      <div className="mb-4 h-4 w-40 rounded bg-[#f1f5f9]" />
+      <div className="mb-4 h-4 w-40 rounded bg-[#F5F5F3]" />
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="mb-3 flex items-center gap-4 rounded-lg border border-[#f8fafc] p-4">
-          <div className="h-9 w-9 rounded-full bg-[#f1f5f9]" />
+        <div key={i} className="mb-3 flex items-center gap-4 rounded-lg border border-[#F5F5F3] p-4">
+          <div className="h-9 w-9 rounded-full bg-[#F5F5F3]" />
           <div className="flex-1 space-y-2">
-            <div className="h-3 w-1/4 rounded bg-[#f1f5f9]" />
-            <div className="h-3 w-1/6 rounded bg-[#f1f5f9]" />
+            <div className="h-3 w-1/4 rounded bg-[#F5F5F3]" />
+            <div className="h-3 w-1/6 rounded bg-[#F5F5F3]" />
           </div>
-          <div className="h-3 w-20 rounded bg-[#f1f5f9]" />
-          <div className="h-3 w-24 rounded bg-[#f1f5f9]" />
-          <div className="h-6 w-16 rounded-full bg-[#f1f5f9]" />
+          <div className="h-3 w-20 rounded bg-[#F5F5F3]" />
+          <div className="h-3 w-24 rounded bg-[#F5F5F3]" />
+          <div className="h-6 w-16 rounded-full bg-[#F5F5F3]" />
         </div>
       ))}
     </div>
@@ -543,7 +543,7 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f1f5f9]">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F5F3]">
         <Inbox size={22} className="text-[#94a3b8]" />
       </div>
       {hasAnyAccounts ? (
@@ -559,7 +559,7 @@ function EmptyState({
           </p>
           <button
             onClick={onProvision}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#2c2a7a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#232167]"
           >
             <Plus size={16} strokeWidth={2.5} />
             New Savings Account
