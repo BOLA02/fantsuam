@@ -1,5 +1,5 @@
 // components/apply/step1-personal-info.tsx
-// FULL FILE — visual pass only. State/handlers unchanged from original.
+// FULL FILE — visual redesign pass. State/handlers unchanged from original.
 
 'use client';
 
@@ -8,7 +8,6 @@ import { User, Mail, Phone, Calendar, MapPin, Home, Building2, IdCard, Briefcase
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ApplyFormData } from './apply-types';
-import { SectionHeader } from './section-header';
 import { NIGERIA_STATE_OPTIONS, OCCUPATION_OPTIONS, getLgaOptions } from '@/lib/nigeria-data';
 
 interface Props {
@@ -16,14 +15,43 @@ interface Props {
   onChange: (field: keyof ApplyFormData, value: string) => void;
 }
 
-const inputClass = 'h-10 text-sm text-foreground placeholder:text-muted-foreground/60';
+const inputClass =
+  'h-11 text-[15px] text-foreground placeholder:text-muted-foreground/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:border-primary/50';
 
-function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
-    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-      <Icon size={13} className="text-muted-foreground" />
+    <label htmlFor={htmlFor} className="mb-1.5 block text-[13px] font-medium text-foreground/70">
       {children}
     </label>
+  );
+}
+
+function Section({
+  icon: Icon,
+  title,
+  hint,
+  first,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  hint?: string;
+  first?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={`${first ? '' : 'border-t border-border/60 pt-7'}`}>
+      <div className="mb-4 flex items-baseline justify-between gap-4">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Icon size={14} strokeWidth={2.25} />
+          </span>
+          <h3 className="text-[15px] font-semibold text-foreground">{title}</h3>
+        </div>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      </div>
+      <div className="pl-9">{children}</div>
+    </section>
   );
 }
 
@@ -68,32 +96,31 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
   const bvnInvalid = !!formData.bvn && !/^\d{11}$/.test(formData.bvn);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div className="hidden lg:block">
-        <h2 className="text-xl font-bold text-foreground">Personal Information</h2>
+        <h2 className="text-xl font-bold text-foreground">Personal information</h2>
         <p className="mt-1 text-sm text-muted-foreground">Tell us about yourself</p>
       </div>
 
-      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
-        <SectionHeader icon={User} title="Identity" />
-        <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-3">
+      <Section icon={User} title="Identity" first>
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <FieldLabel icon={User}>First Name</FieldLabel>
+              <FieldLabel>First name</FieldLabel>
               <Input value={formData.firstName} onChange={(e) => onChange('firstName', e.target.value)} placeholder="John" className={inputClass} />
             </div>
             <div>
-              <FieldLabel icon={User}>Last Name</FieldLabel>
+              <FieldLabel>Last name</FieldLabel>
               <Input value={formData.lastName} onChange={(e) => onChange('lastName', e.target.value)} placeholder="Doe" className={inputClass} />
             </div>
             <div>
-              <FieldLabel icon={User}>Middle Name</FieldLabel>
+              <FieldLabel>Middle name</FieldLabel>
               <Input value={formData.middleName} onChange={(e) => onChange('middleName', e.target.value)} placeholder="Optional" className={inputClass} />
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <FieldLabel icon={User}>Gender</FieldLabel>
+              <FieldLabel>Gender</FieldLabel>
               <Select value={formData.gender} onValueChange={(value) => onChange('gender', value ?? '')}>
                 <SelectTrigger className={inputClass}>
                   <SelectValue placeholder="Select gender" />
@@ -105,43 +132,67 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
               </Select>
             </div>
             <div>
-              <FieldLabel icon={Calendar}>Date of Birth</FieldLabel>
-              <Input type="date" value={formData.dateOfBirth} onChange={(e) => onChange('dateOfBirth', e.target.value)} className={inputClass} />
+              <FieldLabel>Date of birth</FieldLabel>
+              <div className="relative">
+                <Calendar size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                <Input
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => onChange('dateOfBirth', e.target.value)}
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </section>
+      </Section>
 
-      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
-        <SectionHeader icon={Phone} title="Contact Details" />
-        <div className="grid gap-3 sm:grid-cols-2">
+      <Section icon={Phone} title="Contact details">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <FieldLabel icon={Mail}>Email</FieldLabel>
-            <Input required type="email" value={formData.email} onChange={(e) => onChange('email', e.target.value)} placeholder="john@example.com" className={inputClass} />
+            <FieldLabel>Email</FieldLabel>
+            <div className="relative">
+              <Mail size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+              <Input
+                required
+                type="email"
+                value={formData.email}
+                onChange={(e) => onChange('email', e.target.value)}
+                placeholder="john@example.com"
+                className={`${inputClass} pl-9`}
+              />
+            </div>
           </div>
           <div>
-            <FieldLabel icon={Phone}>Phone</FieldLabel>
-            <Input value={formData.phone} onChange={(e) => onChange('phone', e.target.value)} placeholder="+234 801 234 5678" className={inputClass} />
+            <FieldLabel>Phone</FieldLabel>
+            <div className="relative">
+              <Phone size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+              <Input
+                value={formData.phone}
+                onChange={(e) => onChange('phone', e.target.value)}
+                placeholder="+234 801 234 5678"
+                className={`${inputClass} pl-9`}
+              />
+            </div>
           </div>
         </div>
-      </section>
+      </Section>
 
-      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
-        <SectionHeader icon={Home} title="Home Address" />
-        <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+      <Section icon={Home} title="Home address">
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <FieldLabel icon={Home}>Address Line 1</FieldLabel>
+              <FieldLabel>Address line 1</FieldLabel>
               <Input value={formData.addressLine1} onChange={(e) => onChange('addressLine1', e.target.value)} placeholder="Street address" className={inputClass} />
             </div>
             <div>
-              <FieldLabel icon={Home}>Address Line 2</FieldLabel>
+              <FieldLabel>Address line 2</FieldLabel>
               <Input value={formData.addressLine2} onChange={(e) => onChange('addressLine2', e.target.value)} placeholder="Optional" className={inputClass} />
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-4">
             <div>
-              <FieldLabel icon={MapPin}>State</FieldLabel>
+              <FieldLabel>State</FieldLabel>
               <Select value={formData.state} onValueChange={handleStateSelect}>
                 <SelectTrigger className={inputClass}>
                   <SelectValue placeholder="Select state" />
@@ -156,7 +207,7 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
               </Select>
             </div>
             <div>
-              <FieldLabel icon={MapPin}>LGA</FieldLabel>
+              <FieldLabel>LGA</FieldLabel>
               <Select
                 value={formData.city}
                 onValueChange={(value) => onChange('city', value ?? '')}
@@ -175,53 +226,56 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
               </Select>
             </div>
             <div>
-              <FieldLabel icon={MapPin}>Country</FieldLabel>
-              <Input value="Nigeria" disabled className={`${inputClass} bg-muted text-muted-foreground`} />
+              <FieldLabel>Country</FieldLabel>
+              <div className="relative">
+                <MapPin size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                <Input value="Nigeria" disabled className={`${inputClass} pl-9 bg-muted/50 text-muted-foreground`} />
+              </div>
             </div>
             <div>
-              <FieldLabel icon={MapPin}>Postal Code</FieldLabel>
+              <FieldLabel>Postal code</FieldLabel>
               <Input value={formData.postalCode} onChange={(e) => onChange('postalCode', e.target.value)} placeholder="Optional" className={inputClass} />
             </div>
           </div>
         </div>
-      </section>
+      </Section>
 
-      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
-        <SectionHeader icon={IdCard} title="Identification" />
-        <div className="grid gap-3 sm:grid-cols-2">
+      <Section icon={IdCard} title="Identification" hint="Optional">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <FieldLabel icon={IdCard}>NIN</FieldLabel>
+            <FieldLabel>NIN</FieldLabel>
             <Input
               value={formData.nin}
               onChange={(e) => onChange('nin', e.target.value.replace(/\D/g, '').slice(0, 11))}
               placeholder="00000000000"
               inputMode="numeric"
               maxLength={11}
-              className={`${inputClass} ${ninInvalid ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+              aria-invalid={ninInvalid}
+              className={`${inputClass} ${ninInvalid ? 'border-destructive focus-visible:ring-destructive/40 focus-visible:border-destructive' : ''}`}
             />
             {ninInvalid && <p className="mt-1.5 text-xs text-destructive">NIN must be exactly 11 digits.</p>}
           </div>
           <div>
-            <FieldLabel icon={IdCard}>BVN</FieldLabel>
+            <FieldLabel>BVN</FieldLabel>
             <Input
               value={formData.bvn}
               onChange={(e) => onChange('bvn', e.target.value.replace(/\D/g, '').slice(0, 11))}
               placeholder="00000000000"
               inputMode="numeric"
               maxLength={11}
-              className={`${inputClass} ${bvnInvalid ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+              aria-invalid={bvnInvalid}
+              className={`${inputClass} ${bvnInvalid ? 'border-destructive focus-visible:ring-destructive/40 focus-visible:border-destructive' : ''}`}
             />
             {bvnInvalid && <p className="mt-1.5 text-xs text-destructive">BVN must be exactly 11 digits.</p>}
           </div>
         </div>
-      </section>
+      </Section>
 
-      <section className="rounded-lg border border-border/70 bg-muted/20 p-4">
-        <SectionHeader icon={Briefcase} title="Employment & Income" />
-        <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+      <Section icon={Briefcase} title="Employment & income">
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <FieldLabel icon={Briefcase}>Occupation</FieldLabel>
+              <FieldLabel>Occupation</FieldLabel>
               <Select value={occupationSelectValue} onValueChange={handleOccupationSelect}>
                 <SelectTrigger className={inputClass}>
                   <SelectValue placeholder="Select occupation" />
@@ -244,25 +298,36 @@ export function Step1PersonalInfo({ formData, onChange }: Props) {
               )}
             </div>
             <div>
-              <FieldLabel icon={Building2}>Employer</FieldLabel>
-              <Input value={formData.employer} onChange={(e) => onChange('employer', e.target.value)} placeholder="Company name" className={inputClass} />
+              <FieldLabel>Employer</FieldLabel>
+              <div className="relative">
+                <Building2 size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                <Input
+                  value={formData.employer}
+                  onChange={(e) => onChange('employer', e.target.value)}
+                  placeholder="Company name"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
             </div>
           </div>
           <div className="sm:w-1/2">
-            <FieldLabel icon={Wallet}>Monthly Income</FieldLabel>
+            <FieldLabel>Monthly income</FieldLabel>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₦</span>
+              <span className="absolute left-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-[15px] text-muted-foreground/70">
+                <Wallet size={15} className="text-muted-foreground/60" />
+                ₦
+              </span>
               <Input
                 type="number"
                 value={formData.monthlyIncome}
                 onChange={(e) => onChange('monthlyIncome', e.target.value)}
                 placeholder="0.00"
-                className={`${inputClass} pl-7`}
+                className={`${inputClass} pl-11`}
               />
             </div>
           </div>
         </div>
-      </section>
+      </Section>
     </div>
   );
 }

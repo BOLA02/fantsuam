@@ -1,6 +1,6 @@
 // components/apply/step4-documents.tsx
-// FULL FILE — visual pass only. Same upload logic, state, and overflow
-// fixes as the original.
+// FULL FILE — visual redesign pass, matches steps 1–3. Same upload logic, state,
+// and overflow fixes as the original.
 
 'use client';
 
@@ -31,6 +31,7 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
   const [error, setError] = useState<string | null>(null);
 
   const requiredUploaded = DOCUMENT_TYPES.filter((d) => d.required && uploadedTypes.includes(d.id)).length;
+  const allRequiredDone = requiredUploaded === REQUIRED_COUNT;
 
   const handleFileSelect = async (documentType: string, file: File) => {
     setError(null);
@@ -53,18 +54,21 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
   };
 
   return (
-    <div className="w-full min-w-0 space-y-5 overflow-x-hidden">
+    <div className="w-full min-w-0 space-y-6 overflow-x-hidden">
       <div className="hidden lg:block">
-        <h2 className="text-xl font-bold text-foreground">Upload Documents</h2>
+        <h2 className="text-xl font-bold text-foreground">Upload documents</h2>
         <p className="mt-1 text-sm text-muted-foreground">Upload required supporting documents</p>
       </div>
 
-      <div className="min-w-0 rounded-lg border border-border/70 bg-muted/20 p-4">
-        <div className="mb-2 flex min-w-0 items-center justify-between gap-2 text-xs">
-          <span className="min-w-0 truncate font-medium text-foreground">
+      <div className="min-w-0">
+        <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-1.5 truncate text-[13px] font-medium text-foreground">
+            {allRequiredDone && <CheckCircle2 size={14} className="shrink-0 text-primary" />}
             {requiredUploaded} of {REQUIRED_COUNT} required documents uploaded
           </span>
-          <span className="shrink-0 text-muted-foreground">{uploadedTypes.length} of {DOCUMENT_TYPES.length} total</span>
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {uploadedTypes.length} of {DOCUMENT_TYPES.length} total
+          </span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-border">
           <div
@@ -74,7 +78,11 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
         </div>
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3.5 py-2.5 text-xs text-destructive">
+          {error}
+        </p>
+      )}
 
       <div className="grid min-w-0 gap-2.5 sm:grid-cols-2">
         {DOCUMENT_TYPES.map((doc) => {
@@ -85,12 +93,14 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
             <label
               key={doc.id}
               className={`flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-lg border p-3.5 transition-colors ${
-                isUploaded ? 'border-primary/40 bg-primary/5' : 'border-border bg-card hover:border-foreground/20 hover:bg-muted/40'
-              }`}
+                isUploaded
+                  ? 'border-primary/40 bg-primary/5'
+                  : 'border-border/80 bg-card hover:border-foreground/25 hover:bg-muted/40'
+              } ${isUploading ? 'pointer-events-none opacity-70' : ''}`}
             >
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
                     isUploaded ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
                   }`}
                 >
@@ -111,12 +121,12 @@ export function Step4Documents({ customerId, applicationId, uploadedTypes, onUpl
                       </span>
                     )}
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className={`truncate text-xs ${isUploaded ? 'text-primary/80' : 'text-muted-foreground'}`}>
                     {isUploaded ? 'Uploaded' : isUploading ? 'Uploading…' : doc.hint}
                   </p>
                 </div>
               </div>
-              {!isUploaded && <Upload size={15} className="shrink-0 text-muted-foreground" />}
+              {!isUploaded && !isUploading && <Upload size={15} className="shrink-0 text-muted-foreground" />}
               <input
                 type="file"
                 accept=".jpg,.jpeg,.png,.pdf"
