@@ -1,17 +1,15 @@
-// app/admin/layout.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin-sidebar';
 import { AdminHeader } from '@/components/admin-header';
-import { useAuth } from '@/lib/auth-context';
+import { AuthProvider, useAuth } from '@/lib/auth-context';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { loading, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Default: open on desktop, closed (drawer hidden) on mobile
   useEffect(() => {
     const isDesktop = window.innerWidth >= 768;
     setSidebarOpen(isDesktop);
@@ -45,5 +43,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </main>
       </div>
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <AdminLayoutInner>{children}</AdminLayoutInner>
+    </AuthProvider>
   );
 }
