@@ -20,6 +20,9 @@ router.get("/me", customer_auth_middleware_1.authenticateCustomer, customer_cont
 router.post("/", application_fee_middleware_1.requireApplicationFee, (0, validate_middleware_1.validate)(customer_validation_1.createCustomerSchema), customer_controller_1.default.create);
 // Everything below requires staff SSO authentication
 router.use(identity_middleware_1.requireIdentity, (0, asyncHandler_1.asyncHandler)(resolveLocalUser_middleware_1.resolveLocalUser));
+// Staff can register walk-in customers without going through the public
+// application-fee flow.
+router.post("/manual", (0, permission_middleware_1.requirePermission)("loan.customers.manage"), (0, validate_middleware_1.validate)(customer_validation_1.createCustomerSchema), customer_controller_1.default.create);
 router.get("/", (0, permission_middleware_1.requirePermission)("loan.customers.manage", "loan.customers.view"), customer_controller_1.default.getAll);
 router.get("/search", (0, permission_middleware_1.requirePermission)("loan.customers.manage", "loan.customers.view"), customer_controller_1.default.search);
 router.get("/:id", (0, permission_middleware_1.requirePermission)("loan.customers.manage", "loan.customers.view"), customer_controller_1.default.getById);

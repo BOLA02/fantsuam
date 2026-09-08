@@ -10,5 +10,7 @@ exports.updateSettingsSchema = zod_1.z.object({
         phone: zod_1.z.string().min(10).optional(),
         applicationFeeEnabled: zod_1.z.boolean().optional(),
         applicationFeeAmount: zod_1.z.number().int().min(0).optional(),
+        loanRequiresSavingsAccount: zod_1.z.boolean().optional(),
+        minimumSavingsBalanceForLoan: zod_1.z.number().min(0).optional(),
     }),
 });

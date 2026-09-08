@@ -19,6 +19,8 @@ interface OrganizationSettings {
   phone: string;
   applicationFeeEnabled: boolean;
   applicationFeeAmount: number;
+  loanRequiresSavingsAccount: boolean;
+  minimumSavingsBalanceForLoan: number;
 }
 
 export default function SettingsPage() {
@@ -52,6 +54,8 @@ export default function SettingsPage() {
       if (!prev) return prev;
       if (field === 'applicationFeeEnabled') return { ...prev, applicationFeeEnabled: value === 'true' };
       if (field === 'applicationFeeAmount') return { ...prev, applicationFeeAmount: Math.max(0, Math.round(Number(value || 0) * 100)) };
+      if (field === 'loanRequiresSavingsAccount') return { ...prev, loanRequiresSavingsAccount: value === 'true' };
+      if (field === 'minimumSavingsBalanceForLoan') return { ...prev, minimumSavingsBalanceForLoan: Math.max(0, Number(value || 0)) };
       return { ...prev, [field]: value };
     });
   };
@@ -73,6 +77,8 @@ export default function SettingsPage() {
             phone: settings.phone,
             applicationFeeEnabled: settings.applicationFeeEnabled,
             applicationFeeAmount: settings.applicationFeeAmount,
+            loanRequiresSavingsAccount: settings.loanRequiresSavingsAccount,
+            minimumSavingsBalanceForLoan: settings.minimumSavingsBalanceForLoan,
           }),
         }
       );
@@ -109,6 +115,8 @@ export default function SettingsPage() {
           phone={settings.phone}
           applicationFeeEnabled={settings.applicationFeeEnabled}
           applicationFeeAmount={settings.applicationFeeAmount}
+          loanRequiresSavingsAccount={settings.loanRequiresSavingsAccount}
+          minimumSavingsBalanceForLoan={settings.minimumSavingsBalanceForLoan}
           onFieldChange={handleFieldChange}
         />
       )}

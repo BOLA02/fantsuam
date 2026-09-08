@@ -9,5 +9,7 @@ export const updateSettingsSchema = z.object({
     phone: z.string().min(10).optional(),
     applicationFeeEnabled: z.boolean().optional(),
     applicationFeeAmount: z.number().int().min(0).optional(),
+    loanRequiresSavingsAccount: z.boolean().optional(),
+    minimumSavingsBalanceForLoan: z.number().min(0).optional(),
   }),
 });

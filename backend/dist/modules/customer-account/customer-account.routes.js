@@ -10,4 +10,6 @@ const router = (0, express_1.Router)();
 router.use(customer_auth_middleware_1.authenticateCustomer);
 router.get("/loans", customer_account_controller_1.default.loans);
 router.get("/repayments", customer_account_controller_1.default.repayments);
+router.get("/savings", customer_account_controller_1.default.savings);
+router.get("/eligibility", customer_account_controller_1.default.eligibility);
 exports.default = router;

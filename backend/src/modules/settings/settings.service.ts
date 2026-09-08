@@ -8,6 +8,8 @@ const DEFAULTS = {
   phone: "+234 803 000 0000",
   applicationFeeEnabled: false,
   applicationFeeAmount: 0,
+  loanRequiresSavingsAccount: true,
+  minimumSavingsBalanceForLoan: 0,
 };
 
 class SettingsService {

@@ -9,10 +9,12 @@ interface SettingsProfileFormProps {
   phone: string;
   applicationFeeEnabled: boolean;
   applicationFeeAmount: number;
+  loanRequiresSavingsAccount: boolean;
+  minimumSavingsBalanceForLoan: number;
   onFieldChange: (field: string, value: string) => void;
 }
 
-export function SettingsProfileForm({ organizationName, email, phone, applicationFeeEnabled, applicationFeeAmount, onFieldChange }: SettingsProfileFormProps) {
+export function SettingsProfileForm({ organizationName, email, phone, applicationFeeEnabled, applicationFeeAmount, loanRequiresSavingsAccount, minimumSavingsBalanceForLoan, onFieldChange }: SettingsProfileFormProps) {
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <h3 className="text-lg font-semibold text-foreground mb-4">Organization Profile</h3>
@@ -41,6 +43,21 @@ export function SettingsProfileForm({ organizationName, email, phone, applicatio
             onChange={(e) => onFieldChange('phone', e.target.value)}
             className="mt-2"
           />
+        </div>
+      </div>
+      <div className="mt-8 border-t border-border pt-6">
+        <h3 className="text-lg font-semibold text-foreground">Loan eligibility</h3>
+        <p className="mt-1 text-sm text-muted-foreground">Set the savings conditions customers must meet before submitting a loan application.</p>
+        <div className="mt-4 grid gap-6 md:grid-cols-2">
+          <label className="flex items-center gap-3 text-sm font-medium text-foreground">
+            <input type="checkbox" checked={loanRequiresSavingsAccount} onChange={(e) => onFieldChange('loanRequiresSavingsAccount', String(e.target.checked))} />
+            Require an active savings account
+          </label>
+          <div>
+            <label className="text-sm font-medium text-foreground">Minimum savings balance (₦)</label>
+            <Input type="number" min="0" step="0.01" value={minimumSavingsBalanceForLoan} onChange={(e) => onFieldChange('minimumSavingsBalanceForLoan', e.target.value)} className="mt-2" />
+            <p className="mt-1 text-xs text-muted-foreground">A customer must have at least this balance to apply.</p>
+          </div>
         </div>
       </div>
       <div className="mt-8 border-t border-border pt-6">

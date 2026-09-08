@@ -17,6 +17,7 @@ import { PageHeader } from '@/components/page-header';
 import { DataTable, Column } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/form';
+import { Dialog } from '@/components/dialog';
 import { api } from '@/lib/api-routes';
 
 interface CustomerAddress {
@@ -137,6 +138,30 @@ export default function CustomersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
+  const [showCreateCustomer, setShowCreateCustomer] = useState(false);
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [customerForm, setCustomerForm] = useState({ firstName: '', lastName: '', gender: 'MALE', dateOfBirth: '', phone: '', email: '', addressLine1: '', city: '', state: '', country: 'Nigeria', employerName: '', occupation: '', monthlyIncome: '' });
+
+  const updateCustomerForm = (field: string, value: string) => setCustomerForm((form) => ({ ...form, [field]: value }));
+  const createManualCustomer = async () => {
+    try {
+      setCreatingCustomer(true);
+      await api.customers.createManual({
+        ...customerForm,
+        customerNumber: `CUS-${Date.now()}`,
+        monthlyIncome: Number(customerForm.monthlyIncome),
+        address: { addressLine1: customerForm.addressLine1, city: customerForm.city, state: customerForm.state, country: customerForm.country },
+        employment: { employerName: customerForm.employerName, occupation: customerForm.occupation, monthlyIncome: Number(customerForm.monthlyIncome) },
+      });
+      setShowCreateCustomer(false);
+      setCustomerForm({ firstName: '', lastName: '', gender: 'MALE', dateOfBirth: '', phone: '', email: '', addressLine1: '', city: '', state: '', country: 'Nigeria', employerName: '', occupation: '', monthlyIncome: '' });
+      await loadCustomersData();
+    } catch (err: any) {
+      setError(err.message || 'Could not create customer. Please review the form and try again.');
+    } finally {
+      setCreatingCustomer(false);
+    }
+  };
 
   const loadCustomersData = useCallback(async (query?: string, isInitial = false) => {
     try {
@@ -339,10 +364,14 @@ export default function CustomersPage() {
           )}
         </div>
 
-        <Button nativeButton={true} className="bg-primary hover:bg-primary/90 shrink-0">
-          <Download size={16} className="mr-2" />
-          Export
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowCreateCustomer(true)} className="bg-primary hover:bg-primary/90 shrink-0">
+            <UserPlus size={16} className="mr-2" /> Add customer
+          </Button>
+          <Button nativeButton={true} variant="outline" className="shrink-0">
+            <Download size={16} className="mr-2" /> Export
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -362,6 +391,13 @@ export default function CustomersPage() {
           </Button>
         </div>
       )}
+
+      <Dialog open={showCreateCustomer} onOpenChange={setShowCreateCustomer} title="Add customer" description="Register a walk-in customer without the public application process." maxWidth="xl" actions={<><Button variant="outline" onClick={() => setShowCreateCustomer(false)} disabled={creatingCustomer}>Cancel</Button><Button onClick={createManualCustomer} disabled={creatingCustomer}>{creatingCustomer ? 'Saving…' : 'Save customer'}</Button></>}>
+        <div className="grid gap-3 sm:grid-cols-2 max-h-[55vh] overflow-y-auto pr-1">
+          {([['firstName', 'First name'], ['lastName', 'Last name'], ['dateOfBirth', 'Date of birth'], ['phone', 'Phone number'], ['email', 'Email address'], ['addressLine1', 'Address'], ['city', 'City'], ['state', 'State'], ['employerName', 'Employer'], ['occupation', 'Occupation'], ['monthlyIncome', 'Monthly income']] as const).map(([field, label]) => <label key={field} className="text-sm font-medium">{label}<Input className="mt-1" type={field === 'dateOfBirth' ? 'date' : field === 'monthlyIncome' ? 'number' : field === 'email' ? 'email' : 'text'} value={customerForm[field]} onChange={(e) => updateCustomerForm(field, e.target.value)} /></label>)}
+          <label className="text-sm font-medium">Gender<select className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={customerForm.gender} onChange={(e) => updateCustomerForm('gender', e.target.value)}><option value="MALE">Male</option><option value="FEMALE">Female</option></select></label>
+        </div>
+      </Dialog>
 
       <div className="rounded-lg border border-border bg-card p-6">
         {isLoading ? (

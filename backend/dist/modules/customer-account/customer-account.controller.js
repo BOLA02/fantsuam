@@ -34,5 +34,30 @@ class CustomerAccountController {
             next(error);
         }
     };
+    savings = async (req, res, next) => {
+        try {
+            const account = await prisma_1.default.savingsAccount.findFirst({
+                where: { customerId: req.customer.id, deletedAt: null },
+                include: { transactions: { orderBy: { transactionDate: "desc" }, take: 20 } },
+            });
+            res.json({ success: true, data: account });
+        }
+        catch (error) {
+            next(error);
+        }
+    };
+    eligibility = async (req, res, next) => {
+        try {
+            const settings = await prisma_1.default.organizationSettings.findFirst();
+            const account = await prisma_1.default.savingsAccount.findFirst({ where: { customerId: req.customer.id, deletedAt: null, status: "ACTIVE" }, select: { balance: true } });
+            const minimumBalance = Number(settings?.minimumSavingsBalanceForLoan ?? 0);
+            const requiresAccount = settings?.loanRequiresSavingsAccount ?? true;
+            const eligible = (!requiresAccount || Boolean(account)) && (!account ? minimumBalance === 0 && !requiresAccount : Number(account.balance) >= minimumBalance);
+            res.json({ success: true, data: { eligible, requiresAccount, minimumBalance, currentBalance: Number(account?.balance ?? 0) } });
+        }
+        catch (error) {
+            next(error);
+        }
+    };
 }
 exports.default = new CustomerAccountController();

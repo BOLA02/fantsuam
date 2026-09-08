@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../../../lib/api-routes';
 import type { SavingsTransaction } from '../../../../lib/api-types';
+import { downloadReceipt } from '../../../../lib/receipt';
 
 // interface SavingsTransaction {
 //   id: string;
@@ -373,6 +374,7 @@ export function TransactionHistoryModal({
                   <th style={headerStyle}>Balance After</th>
                   <th style={headerStyle}>Payment Method</th>
                   <th style={headerStyle}>Description</th>
+                  <th style={headerStyle}>Receipt</th>
                 </tr>
               </thead>
 
@@ -466,6 +468,9 @@ export function TransactionHistoryModal({
                         }}
                       >
                         {transaction.description || '—'}
+                      </td>
+                      <td style={cellStyle}>
+                        <button type="button" className="text-xs font-semibold text-[#2E3192] hover:underline" onClick={() => downloadReceipt({ reference: transaction.reference, type: `Savings ${transaction.transactionType.toLowerCase()}`, amount: Number(transaction.amount), date: transaction.transactionDate, customerName: `${account!.customer.firstName} ${account!.customer.lastName}`, accountNumber: account!.accountNumber, paymentMethod: transaction.paymentMethod, balanceAfter: Number(transaction.balanceAfter) })}>Receipt</button>
                       </td>
                     </tr>
                   );

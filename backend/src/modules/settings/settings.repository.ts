@@ -13,6 +13,8 @@ class SettingsRepository {
     phone: string;
     applicationFeeEnabled?: boolean;
     applicationFeeAmount?: number;
+    loanRequiresSavingsAccount?: boolean;
+    minimumSavingsBalanceForLoan?: number;
   }) {
     return prisma.organizationSettings.create({ data });
   }
@@ -23,8 +25,10 @@ class SettingsRepository {
       organizationName: string;
       email: string;
       phone: string;
-      applicationFeeEnabled: boolean;
-      applicationFeeAmount: number;
+    applicationFeeEnabled: boolean;
+    applicationFeeAmount: number;
+    loanRequiresSavingsAccount: boolean;
+    minimumSavingsBalanceForLoan: number;
     }>
   ) {
     return prisma.organizationSettings.update({

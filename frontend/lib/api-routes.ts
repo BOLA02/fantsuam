@@ -69,6 +69,12 @@ export const api = {
         body: JSON.stringify(payload),
       });
     },
+    createManual: async (payload: any) => {
+      return apiClient<ApiResponse<Customer>>('/customers/manual', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
     update: async (id: string, payload: any) => {
       return apiClient<ApiResponse<Customer>>(`/customers/${id}`, {
         method: 'PATCH',

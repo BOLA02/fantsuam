@@ -3,11 +3,14 @@
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, CalendarDays, CheckCircle2, CircleDollarSign, CreditCard, FileText, LogOut, Plus, WalletCards, X } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, CheckCircle2, CircleDollarSign, CreditCard, Download, FileText, LogOut, Plus, WalletCards, X } from 'lucide-react';
 import { clearCustomerSession, customerApi, getLoanProducts, applyForLoan, type LoanProductOption } from '@/lib/customer-api';
+import { downloadReceipt } from '@/lib/receipt';
 
 type Loan = { id: string; loanNumber: string; status: string; approvedAmount: string | number; outstandingBalance: string | number; repaymentFrequency: string; loanProduct: { name: string }; schedules: { dueDate: string; balance: string | number }[] };
 type Repayment = { id: string; receiptNumber: string; amount: string | number; paymentDate: string; confirmationStatus: string; loan: { loanNumber: string } };
+type SavingsAccount = { accountNumber: string; status: string; balance: string | number; transactions: { id: string; reference: string; transactionType: string; amount: string | number; transactionDate: string; paymentMethod: string; balanceAfter: string | number }[] };
+type Eligibility = { eligible: boolean; requiresAccount: boolean; minimumBalance: number; currentBalance: number };
 const money = (value: string | number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value));
 const label = (value: string) => value.replaceAll('_', ' ');
 
@@ -15,13 +18,15 @@ export default function CustomerAccountPage() {
   const router = useRouter();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [repayments, setRepayments] = useState<Repayment[]>([]);
+  const [savings, setSavings] = useState<SavingsAccount | null>(null);
+  const [eligibility, setEligibility] = useState<Eligibility | null>(null);
   const [error, setError] = useState('');
   const [showApply, setShowApply] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
 
   const loadAccount = () => {
-    Promise.all([customerApi<{ data: Loan[] }>('/customer-account/loans'), customerApi<{ data: Repayment[] }>('/customer-account/repayments')])
-      .then(([l, r]) => { setLoans(l.data); setRepayments(r.data); })
+    Promise.all([customerApi<{ data: Loan[] }>('/customer-account/loans'), customerApi<{ data: Repayment[] }>('/customer-account/repayments'), customerApi<{ data: SavingsAccount | null }>('/customer-account/savings'), customerApi<{ data: Eligibility }>('/customer-account/eligibility')])
+      .then(([l, r, s, e]) => { setLoans(l.data); setRepayments(r.data); setSavings(s.data); setEligibility(e.data); })
       .catch((err) => { setError(err.message || 'Unable to load your account.'); if (/session|sign-in|expired/i.test(err.message)) { clearCustomerSession(); router.replace('/account/sign-in'); } });
   };
 
@@ -59,10 +64,15 @@ export default function CustomerAccountPage() {
           <p className="text-xs font-bold uppercase tracking-[0.19em] text-[#B9D86B]">Your financial journey</p>
           <h1 className="mt-3 font-serif text-3xl leading-tight sm:text-4xl">Your loan details, clear and close at hand.</h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-white/75">Follow your application, know what is due next, and keep a complete record of payments in one secure place.</p>
-          <button onClick={() => setShowApply(true)} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#F4C95D] px-5 py-3 text-sm font-bold text-[#2E3192] transition hover:brightness-105">
+          <button onClick={() => eligibility?.eligible ? setShowApply(true) : showToast(`A savings account with at least ${money(eligibility?.minimumBalance ?? 0)} is required before applying. Please contact the branch to open or fund your account.`)} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#F4C95D] px-5 py-3 text-sm font-bold text-[#2E3192] transition hover:brightness-105">
             <Plus size={16} /> Re-apply for a loan
           </button>
         </div>
+      </section>
+
+      <section className="mt-10">
+        <div className="mb-4"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1E7A34]">Savings profile</p><h2 className="mt-1 font-serif text-2xl text-[#2E3192]">My savings</h2></div>
+        {!savings ? <EmptyState icon={WalletCards} title="No savings account yet" text="Please visit or contact your branch to open a savings account before applying for a loan." /> : <div className="rounded-[1.5rem] border border-[#E6E0D3] bg-white p-6 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#777266]">{savings.accountNumber}</p><p className="mt-2 font-serif text-3xl text-[#2E3192]">{money(savings.balance)}</p><p className="mt-1 text-sm text-[#625E55]">Available balance · {label(savings.status)}</p></div>{eligibility && <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${eligibility.eligible ? 'bg-[#EAF5E2] text-[#1E7A34]' : 'bg-amber-50 text-amber-800'}`}>{eligibility.eligible ? 'Eligible to apply' : `Need ${money(Math.max(0, eligibility.minimumBalance - eligibility.currentBalance))} more`}</span>}</div><div className="mt-6 border-t border-[#EEE9DF] pt-4"><p className="mb-3 text-sm font-bold text-[#2E3192]">Recent savings transactions</p>{savings.transactions.length === 0 ? <p className="text-sm text-[#625E55]">No transactions yet.</p> : savings.transactions.map((transaction) => <div key={transaction.id} className="flex items-center justify-between gap-3 border-b border-[#F0ECE4] py-3 last:border-0"><div><p className="text-sm font-semibold">{label(transaction.transactionType)}</p><p className="text-xs text-[#777266]">{new Date(transaction.transactionDate).toLocaleDateString()} · {transaction.reference}</p></div><div className="flex items-center gap-3"><p className="font-bold">{money(transaction.amount)}</p><button onClick={() => downloadReceipt({ reference: transaction.reference, type: `Savings ${label(transaction.transactionType)}`, amount: Number(transaction.amount), date: transaction.transactionDate, customerName: 'Account holder', accountNumber: savings.accountNumber, paymentMethod: transaction.paymentMethod, balanceAfter: Number(transaction.balanceAfter) })} className="rounded-lg border border-[#DDD5C6] p-2 text-[#2E3192] hover:bg-[#F8F6F0]" aria-label="Download receipt"><Download size={16} /></button></div></div>)}</div></div>}
       </section>
 
       {error && <p role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</p>}
@@ -73,7 +83,7 @@ export default function CustomerAccountPage() {
         <Metric icon={CircleDollarSign} label="Payments recorded" value={money(paid)} />
       </section>
 
-      <section className="mt-10">
+      <section className="mt-12">
         <div className="mb-4 flex items-end justify-between">
           <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1E7A34]">Loan overview</p><h2 className="mt-1 font-serif text-2xl text-[#2E3192]">My loans</h2></div>
           <span className="text-sm text-[#625E55]">{loans.length} record{loans.length === 1 ? '' : 's'}</span>
@@ -83,7 +93,7 @@ export default function CustomerAccountPage() {
 
       <section className="mt-12">
         <div className="mb-4"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1E7A34]">Transaction record</p><h2 className="mt-1 font-serif text-2xl text-[#2E3192]">Payment history</h2></div>
-        {repayments.length === 0 ? <EmptyState icon={CreditCard} title="No payments recorded" text="When a repayment is confirmed, its receipt will appear here." /> : <div className="overflow-hidden rounded-[1.5rem] border border-[#E6E0D3] bg-white"><div className="hidden grid-cols-[1.2fr_1fr_1fr_1fr] gap-4 border-b border-[#EEE9DF] bg-[#FCFAF5] px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#777266] sm:grid"><span>Receipt</span><span>Date</span><span>Amount</span><span>Status</span></div>{repayments.map((payment) => <div key={payment.id} className="grid gap-2 border-b border-[#F0ECE4] px-6 py-5 last:border-0 sm:grid-cols-[1.2fr_1fr_1fr_1fr] sm:items-center"><div><p className="font-semibold text-[#2E3192]">{payment.receiptNumber}</p><p className="mt-1 text-xs text-[#777266]">{payment.loan.loanNumber}</p></div><p className="text-sm text-[#625E55]">{new Date(payment.paymentDate).toLocaleDateString()}</p><p className="font-bold text-[#2B2B28]">{money(payment.amount)}</p><span className="inline-flex w-fit rounded-full bg-[#F3F9EC] px-3 py-1 text-xs font-bold text-[#1E7A34]">{label(payment.confirmationStatus)}</span></div>)}</div>}
+        {repayments.length === 0 ? <EmptyState icon={CreditCard} title="No payments recorded" text="When a repayment is confirmed, its receipt will appear here." /> : <div className="overflow-hidden rounded-[1.5rem] border border-[#E6E0D3] bg-white"><div className="hidden grid-cols-[1.2fr_1fr_1fr_1fr] gap-4 border-b border-[#EEE9DF] bg-[#FCFAF5] px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#777266] sm:grid"><span>Receipt</span><span>Date</span><span>Amount</span><span>Status</span></div>{repayments.map((payment) => <div key={payment.id} className="grid gap-2 border-b border-[#F0ECE4] px-6 py-5 last:border-0 sm:grid-cols-[1.2fr_1fr_1fr_1fr] sm:items-center"><div><p className="font-semibold text-[#2E3192]">{payment.receiptNumber}</p><p className="mt-1 text-xs text-[#777266]">{payment.loan.loanNumber}</p></div><p className="text-sm text-[#625E55]">{new Date(payment.paymentDate).toLocaleDateString()}</p><p className="font-bold text-[#2B2B28]">{money(payment.amount)}</p><div className="flex items-center gap-2"><span className="inline-flex w-fit rounded-full bg-[#F3F9EC] px-3 py-1 text-xs font-bold text-[#1E7A34]">{label(payment.confirmationStatus)}</span><button onClick={() => downloadReceipt({ reference: payment.receiptNumber, type: `Loan repayment · ${payment.loan.loanNumber}`, amount: Number(payment.amount), date: payment.paymentDate, customerName: 'Account holder' })} className="p-1.5 text-[#2E3192]" aria-label="Download receipt"><Download size={16} /></button></div></div>)}</div>}
       </section>
     </div>
 
@@ -133,7 +143,9 @@ function ReapplyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
     if (!loanProductId || !requestedAmount || !purpose || !durationMonths) { setFormError('Please fill in every field.'); return; }
     setSubmitting(true);
     try {
-      await applyForLoan({ loanProductId, requestedAmount: Number(requestedAmount), purpose, durationMonths: Number(durationMonths) });
+      const result = await applyForLoan({ loanProductId, requestedAmount: Number(requestedAmount), purpose, durationMonths: Number(durationMonths) });
+      const application = result.data as any;
+      if (application?.applicationNumber) downloadReceipt({ reference: application.applicationNumber, type: 'Loan application', amount: Number(requestedAmount), date: new Date().toISOString(), customerName: 'Account holder' });
       onSuccess();
     } catch (err: any) {
       setFormError(err.message || 'Unable to submit your application. Please try again.');

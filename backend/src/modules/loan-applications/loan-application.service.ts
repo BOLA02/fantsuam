@@ -84,6 +84,31 @@ class LoanApplicationService {
       throw new AppError(400, "Customer is not active");
     }
 
+    // This is deliberately checked on the server for both staff-created and
+    // customer-portal applications, so a client cannot bypass the policy.
+    // Cast keeps source builds compatible until Prisma Client is regenerated
+    // during deployment after the accompanying migration runs.
+    const settings = await prisma.organizationSettings.findFirst() as any;
+    const requiresSavings = settings?.loanRequiresSavingsAccount ?? true;
+    const minimumBalance = Number(settings?.minimumSavingsBalanceForLoan ?? 0);
+    if (requiresSavings || minimumBalance > 0) {
+      const savingsAccount = await prisma.savingsAccount.findFirst({
+        where: { customerId: customer.id, deletedAt: null, status: "ACTIVE" },
+        select: { balance: true },
+      });
+
+      if (!savingsAccount) {
+        throw new AppError(400, "An active savings account is required before applying for a loan");
+      }
+
+      if (Number(savingsAccount.balance) < minimumBalance) {
+        throw new AppError(
+          400,
+          `Savings balance must be at least ${minimumBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} before applying for a loan`
+        );
+      }
+    }
+
     const loanProduct = await prisma.loanProduct.findFirst({
       where: { id: data.loanProductId, deletedAt: null },
     });

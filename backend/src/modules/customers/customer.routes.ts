@@ -31,6 +31,15 @@ router.post(
 // Everything below requires staff SSO authentication
 router.use(requireIdentity, asyncHandler(resolveLocalUser));
 
+// Staff can register walk-in customers without going through the public
+// application-fee flow.
+router.post(
+  "/manual",
+  requirePermission("loan.customers.manage"),
+  validate(createCustomerSchema),
+  customerController.create
+);
+
 router.get(
   "/",
   requirePermission("loan.customers.manage", "loan.customers.view"),

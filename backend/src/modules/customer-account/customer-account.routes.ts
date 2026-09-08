@@ -6,4 +6,6 @@ const router = Router();
 router.use(authenticateCustomer);
 router.get("/loans", controller.loans);
 router.get("/repayments", controller.repayments);
+router.get("/savings", controller.savings);
+router.get("/eligibility", controller.eligibility);
 export default router;

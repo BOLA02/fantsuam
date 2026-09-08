@@ -1065,6 +1065,10 @@ model OrganizationSettings {
   applicationFeeEnabled Boolean @default(false)
   applicationFeeAmount  Int     @default(0)
 
+  // Loan eligibility policy. Administrators manage these values from Settings.
+  loanRequiresSavingsAccount Boolean @default(true)
+  minimumSavingsBalanceForLoan Decimal @default(0) @db.Decimal(15, 2)
+
   updatedAt DateTime @updatedAt
 }
 
