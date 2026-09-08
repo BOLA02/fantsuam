@@ -1,5 +1,4 @@
-// lib/api-client.ts
-// FULL FILE — UPDATED: skip JSON content-type/stringify handling for FormData bodies
+import { renewLoanToken } from './sso';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -26,10 +25,18 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
     ...options.headers,
   };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  let response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
+
+  if (response.status === 401 && token && typeof window !== 'undefined') {
+    const renewedToken = await renewLoanToken();
+    response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
+      headers: { ...headers, Authorization: `Bearer ${renewedToken}` },
+    });
+  }
 
   const payload = await response.json();
 

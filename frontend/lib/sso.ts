@@ -1,5 +1,38 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const CONSOLE_URL = process.env.NEXT_PUBLIC_CONSOLE_URL || "https://console.fantsuam.com.ng";
+const IDENTITY_URL = process.env.NEXT_PUBLIC_IDENTITY_API_URL || "https://identity.fantsuam.com.ng/api";
+
+let loanRenewal: Promise<string> | null = null;
+
+export function getTokenExpiry(token: string): number {
+  try {
+    const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+    return Number(JSON.parse(atob(padded)).exp || 0) * 1000;
+  } catch {
+    return 0;
+  }
+}
+
+export function renewLoanToken(): Promise<string> {
+  if (loanRenewal) return loanRenewal;
+  loanRenewal = fetch(`${IDENTITY_URL.replace(/\/$/, "")}/auth/service-token/refresh`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ serviceKey: "loan" }),
+  })
+    .then(async (response) => {
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.accessToken) throw new Error(payload?.message || "Central session expired.");
+      localStorage.setItem("token", payload.accessToken);
+      return payload.accessToken as string;
+    })
+    .finally(() => {
+      loanRenewal = null;
+    });
+  return loanRenewal;
+}
 
 export function captureSsoTokenFromUrl(): void {
   if (typeof window === "undefined") return;
@@ -33,25 +66,28 @@ export interface SessionUser {
   role: string;
   employeeNumber: string;
   email: string;
-  central_role: string;
-  
+  central_role: string[];
   permissions: string[];
 }
 
-// Fetches the full /me payload once, for use in AuthContext.
-// Unlike validateSession(), this keeps the data instead of discarding it.
 export async function fetchSession(): Promise<SessionUser | null> {
-  const token = getStoredToken();
+  let token = getStoredToken();
   if (!token) return null;
 
   try {
-    const res = await fetch(`${API_URL}/auth/me`, {
+    let res = await fetch(`${API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     if (res.status === 401 || res.status === 403) {
-      clearStoredToken();
-      return null;
+      token = await renewLoanToken();
+      res = await fetch(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401 || res.status === 403) {
+        clearStoredToken();
+        return null;
+      }
     }
 
     if (!res.ok) return null;
