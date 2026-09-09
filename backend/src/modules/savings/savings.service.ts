@@ -16,6 +16,14 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** Store and search Nigerian mobile numbers in one consistent local format. */
+function normalizePhone(phone: string): string {
+  const compact = phone.trim().replace(/[\s()\-]/g, '');
+  if (compact.startsWith('+234')) return `0${compact.slice(4)}`;
+  if (compact.startsWith('234') && compact.length === 13) return `0${compact.slice(3)}`;
+  return compact;
+}
+
 const MAX_RETRIES = 3;
 
 class ConcurrentBalanceUpdateError extends Error {}
@@ -225,7 +233,7 @@ async provisionAccount(
     throw new AppError(400, 'Initial deposit must be greater than 0');
   }
 
-  const phone = input.phone.trim();
+  const phone = normalizePhone(input.phone);
 
   if (!phone) {
     throw new AppError(400, 'Customer phone number is required');
@@ -395,7 +403,7 @@ async provisionAccount(
   };
 }
 async findCustomerByPhone(phone: string) {
-  const customer = await this.repository.findCustomerByPhone(phone);
+  const customer = await this.repository.findCustomerByPhone(normalizePhone(phone));
 
   if (!customer) {
     return {

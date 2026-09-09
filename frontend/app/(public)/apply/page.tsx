@@ -28,8 +28,8 @@ import { getApplyProgress, saveApplyProgress, clearApplyProgress } from '@/lib/a
 type Step = 1 | 2 | 3 | 4 | 5;
 
 const STEPS: { id: Step; label: string; description: string }[] = [
-  { id: 1, label: 'Personal Info', description: 'About you' },
-  { id: 2, label: 'Loan Details', description: 'What you need' },
+  { id: 1, label: 'Your profile', description: 'Set up your membership' },
+  { id: 2, label: 'Loan plan', description: 'Choose what you need' },
   { id: 3, label: 'Guarantor', description: 'Your reference' },
   { id: 4, label: 'Documents', description: 'Verification' },
   { id: 5, label: 'Review', description: 'Confirm & submit' },
@@ -398,7 +398,7 @@ export default function ApplyPage() {
   }
 
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
+    <div className="flex min-h-dvh w-full flex-col bg-[#FCFBF8]">
       {showOtpModal && (
         <ResumeOtpModal onVerified={handleOtpVerified} onClose={() => setShowOtpModal(false)} />
       )}
@@ -413,7 +413,7 @@ export default function ApplyPage() {
         />
       )}
 
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3 lg:px-8 lg:py-4">
+      <header className="hidden">
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <div className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
             <Image src="/logo.png" alt="MicroFinance logo" fill className="object-contain" priority />
@@ -439,13 +439,14 @@ export default function ApplyPage() {
       </header>
 
       {/* Mobile-only title (shown when header title is hidden below sm) */}
-      <div className="shrink-0 border-b border-border bg-card px-3 pb-2.5 pt-1.5 text-center sm:hidden">
-        <h1 className="text-sm font-semibold text-foreground">{STEPS[currentStep - 1].label}</h1>
-        <p className="text-[11px] text-muted-foreground">{STEPS[currentStep - 1].description}</p>
+      <div className="shrink-0 px-4 pb-4 pt-10 text-center sm:px-8 lg:pt-14">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1E7A34]">Loan application</p>
+        <h1 className="mt-3 font-serif text-3xl text-[#2E3192] sm:text-4xl">{STEPS[currentStep - 1].label}</h1>
+        <p className="mt-2 text-sm text-[#625E55]">{STEPS[currentStep - 1].description}</p>
       </div>
 
       {/* Horizontal stepper — replaces sidebar */}
-      <div className="shrink-0 overflow-x-auto border-b border-border bg-card px-3 py-4 sm:px-4 lg:px-10">
+      <div className="shrink-0 overflow-x-auto px-4 py-6 sm:px-8 lg:px-10">
         <div className="mx-auto flex max-w-3xl min-w-[340px] items-start">
           {STEPS.map((step, idx) => {
             const isActive = step.id === currentStep;
@@ -485,15 +486,15 @@ export default function ApplyPage() {
         </div>
       </div>
 
-      <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-10 lg:py-8">
+      <main className="flex-1 px-4 pb-10 sm:px-8 lg:px-10">
         <div className="mx-auto flex h-full max-w-3xl flex-col">
           {resuming && (
-            <div className="mb-4 flex shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-muted-foreground">
+            <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 size={14} className="animate-spin" /> Loading your application…
             </div>
           )}
 
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5 lg:p-7">
+          <div className="py-2 sm:py-4">
             {currentStep === 1 && (
               <>
                 <Step1PersonalInfo formData={formData} onChange={handleChange} />
@@ -539,8 +540,8 @@ export default function ApplyPage() {
         </div>
       </main>
 
-      <footer className="shrink-0 border-t border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3 lg:px-10 lg:py-4">
-        <div className="mx-auto flex max-w-3xl justify-between gap-2 sm:gap-3">
+      <div className="px-4 pb-8 pt-2 sm:px-8 lg:px-10 lg:pb-12">
+        <div className="mx-auto flex max-w-3xl justify-between gap-2 border-t border-[#E6E0D3] pt-6 sm:gap-3">
           <Button
             variant="outline"
             size="sm"
@@ -581,7 +582,7 @@ export default function ApplyPage() {
             </Button>
           )}
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

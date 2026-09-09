@@ -27,6 +27,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     const [customerSearched, setCustomerSearched] =
         useState(false);
 
+    const [creatingNewCustomer, setCreatingNewCustomer] =
+        useState(false);
+
     const [searchingCustomer, setSearchingCustomer] =
         useState(false);
 
@@ -86,6 +89,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             const data = response.data;
 
             setCustomerSearched(true);
+            setCreatingNewCustomer(false);
 
             /*
              * Backend returns:
@@ -156,9 +160,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
         if (isProvision) {
             // Customer must be searched first
-            if (!customerSearched) {
+            if (!customerSearched && !creatingNewCustomer) {
                 alert(
-                    'Please search for the customer by phone number first.'
+                    'Find an existing customer or choose New customer first.'
                 );
                 return;
             }
@@ -455,6 +459,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                                         setCustomerSearched(
                                             false
                                         );
+                                        setCreatingNewCustomer(false);
 
                                         setCustomer(null);
 
@@ -512,13 +517,30 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                                         : 'Find'}
                                 </button>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setCustomer(null);
+                                    setExistingSavingsAccount(null);
+                                    setCustomerSearched(false);
+                                    setCreatingNewCustomer(true);
+                                    setFirstName('');
+                                    setLastName('');
+                                    setEmail('');
+                                    setBvn('');
+                                    setNin('');
+                                }}
+                                style={{ marginTop: '10px', border: 'none', background: 'none', padding: 0, color: '#2c2a7a', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                            >
+                                Add a new customer instead
+                            </button>
                         </div>
 
                         {/* -----------------------------------------
                             NEW CUSTOMER DETAILS
                         ------------------------------------------ */}
 
-                        {customerSearched && !customer && (
+                        {(customerSearched || creatingNewCustomer) && !customer && (
                             <div
                                 style={{
                                     marginBottom: '18px',
@@ -550,9 +572,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                                             marginBottom:
                                                 '4px',
                                         }}
-                                    >
-                                        Customer Not Found
-                                    </div>
+                                    >{creatingNewCustomer ? 'New Customer' : 'Customer Not Found'}</div>
 
                                     <div
                                         style={{
@@ -562,14 +582,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                                                 '#c2410c',
                                         }}
                                     >
-                                        No customer is
-                                        registered with
-                                        this phone number.
-                                        Enter the
-                                        customer's
-                                        information below
-                                        to create a new
-                                        customer.
+                                        {creatingNewCustomer
+                                            ? 'Enter the customer details below to open a savings account.'
+                                            : 'No customer is registered with this phone number. Enter the customer information below to create a new customer.'}
                                     </div>
                                 </div>
 
