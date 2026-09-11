@@ -216,7 +216,7 @@ export default function ApplyPage() {
 
   // --- Step submit handlers ---
 
-  const submitStep1 = async () => {
+  const submitStep1 = () => {
     setError(null);
 
     const missing = getMissingFields(formData, STEP1_REQUIRED);
@@ -245,49 +245,12 @@ export default function ApplyPage() {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const res = await api.customers.create({
-        customerNumber: generateCustomerNumber(),
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        middleName: formData.middleName || undefined,
-        gender: formData.gender,
-        dateOfBirth: formData.dateOfBirth,
-        phone: formData.phone,
-        email: formData.email,
-        nin: formData.nin || undefined,
-        bvn: formData.bvn || undefined,
-        address: {
-          addressLine1: formData.addressLine1,
-          addressLine2: formData.addressLine2 || undefined,
-          city: formData.city,
-          state: formData.state,
-          country: formData.country,
-          postalCode: formData.postalCode || undefined,
-        },
-        employment: {
-          employerName: formData.employer,
-          occupation: formData.occupation,
-          monthlyIncome: Number(formData.monthlyIncome),
-        },
-      });
-
-      setFormData((prev) => ({ ...prev, customerId: res.data.id }));
-      saveApplyProgress({ customerId: res.data.id, firstName: formData.firstName });
-      setCurrentStep(2);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
+    // Do not create a customer record until the applicant has selected a loan.
+    // This keeps abandoned profile-only forms out of the customer directory.
+    setCurrentStep(2);
   };
 
   const submitStep2 = async () => {
-    if (!formData.customerId) {
-      setError('Missing customer reference. Please restart the application.');
-      return;
-    }
     if (!formData.loanProductId) {
       setError('Please select a loan type.');
       return;
@@ -313,8 +276,41 @@ export default function ApplyPage() {
     setSubmitting(true);
 
     try {
+      let customerId = formData.customerId;
+
+      if (!customerId) {
+        const customer = await api.customers.create({
+          customerNumber: generateCustomerNumber(),
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          middleName: formData.middleName || undefined,
+          gender: formData.gender,
+          dateOfBirth: formData.dateOfBirth,
+          phone: formData.phone,
+          email: formData.email,
+          nin: formData.nin || undefined,
+          bvn: formData.bvn || undefined,
+          address: {
+            addressLine1: formData.addressLine1,
+            addressLine2: formData.addressLine2 || undefined,
+            city: formData.city,
+            state: formData.state,
+            country: formData.country,
+            postalCode: formData.postalCode || undefined,
+          },
+          employment: {
+            employerName: formData.employer,
+            occupation: formData.occupation,
+            monthlyIncome: Number(formData.monthlyIncome),
+          },
+        });
+        customerId = customer.data.id;
+        setFormData((prev) => ({ ...prev, customerId }));
+        saveApplyProgress({ customerId, firstName: formData.firstName });
+      }
+
       const res = await api.loanApplications.create({
-        customerId: formData.customerId,
+        customerId,
         loanProductId: formData.loanProductId,
         requestedAmount: amount,
         purpose: formData.purpose,
@@ -326,7 +322,7 @@ export default function ApplyPage() {
         applicationId: res.data.id,
         applicationNumber: res.data.applicationNumber,
       }));
-      saveApplyProgress({ customerId: formData.customerId, applicationId: res.data.id });
+      saveApplyProgress({ customerId, applicationId: res.data.id });
       setCurrentStep(3);
     } catch (err: any) {
       setError(err.message);
