@@ -159,6 +159,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         e.preventDefault();
 
         if (isProvision) {
+            const phoneDigits = phone.replace(/\D/g, '');
+            if (phoneDigits.length < 7) {
+                alert('Enter the customer phone number above before creating the savings account.');
+                return;
+            }
+
             // Customer must be searched first
             if (!customerSearched && !creatingNewCustomer) {
                 alert(
@@ -439,7 +445,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                                     marginBottom: '6px',
                                 }}
                             >
-                                Customer Phone Number
+                                Customer Phone Number <span style={{ color: '#dc2626' }}>*</span>
                             </label>
 
                             <div

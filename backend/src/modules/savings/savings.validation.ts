@@ -70,7 +70,7 @@ export const listTransactionsSchema = z.object({
 
 export const provisionSavingsAccountSchema = z.object({
   body: z.object({
-    phone: z.string().min(7),
+    phone: z.string().min(7, 'Enter a valid phone number (at least 7 digits).'),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     branchId: z.string().uuid().optional(),

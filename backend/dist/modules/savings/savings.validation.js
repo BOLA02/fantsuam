@@ -58,7 +58,7 @@ exports.listTransactionsSchema = zod_1.z.object({
 });
 exports.provisionSavingsAccountSchema = zod_1.z.object({
     body: zod_1.z.object({
-        phone: zod_1.z.string().min(7),
+        phone: zod_1.z.string().min(7, 'Enter a valid phone number (at least 7 digits).'),
         firstName: zod_1.z.string().optional(),
         lastName: zod_1.z.string().optional(),
         branchId: zod_1.z.string().uuid().optional(),
