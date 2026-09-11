@@ -11,39 +11,45 @@ const app = express();
 
 // 1. Global security configuration supporting multi-origin setups
 const allowedOrigins = [
-  "http://localhost:3000",
-  "https://console.fantsuam.com.ng",
-  'https://microfinance.fantsuam.com.ng'
+  "http://localhost:3000",
+  "https://console.fantsuam.com.ng",
+  'https://microfinance.fantsuam.com.ng'
 ];
 
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, postman, or curl requests)
-      if (!origin) {
-        return callback(null, true);
-      }
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, postman, or curl requests)
+      if (!origin) {
+        return callback(null, true);
+      }
 
-      // Check if the domain is explicitly listed in our array
-      const isAllowed = allowedOrigins.indexOf(origin) !== -1;
+      // Check if the domain is explicitly listed in our array
+      const isAllowed = allowedOrigins.indexOf(origin) !== -1;
 
-      // Check if it's a dynamic preview or deployment subdomain of your project
-      const isVercelSubdomain = origin.startsWith("https://fantsuam-") && origin.endsWith(".vercel.app");
+      // Check if it's a dynamic preview or deployment subdomain of your project
+      const isVercelSubdomain = origin.startsWith("https://fantsuam-") && origin.endsWith(".vercel.app");
 
-      if (isAllowed || isVercelSubdomain) {
-        callback(null, true);
-      } else {
-        // Log out the blocked origin to your Render dashboard logs for visual auditing
-        console.warn(`Blocked by CORS: ${origin}`);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Application-Fee-Token"],
-    preflightContinue: false, 
-    optionsSuccessStatus: 204
-  })
+      if (isAllowed || isVercelSubdomain) {
+        callback(null, true);
+      } else {
+        // Log out the blocked origin to your Render dashboard logs for visual auditing
+        console.warn(`Blocked by CORS: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Application-Fee-Token",
+      "X-Application-Access-Token",
+      "X-Resume-Token",
+    ],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+  })
 );
 
 app.use(helmet());
@@ -58,10 +64,10 @@ app.use(cookieParser());
 app.use("/api", routes);
 
 app.get("/api/health", (_, res) => {
-  res.json({
-    success: true,
-    message: "API is healthy",
-  });
+  res.json({
+    success: true,
+    message: "API is healthy",
+  });
 });
 
 // 4. Error handler always goes last
