@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Timeline } from '@/components/timeline';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog } from '@/components/dialog';
 import { api } from '@/lib/api-routes';
 import { LoanApplication, Guarantor } from '@/lib/api-types';
@@ -26,6 +27,8 @@ export default function ApplicationDetailPage() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [approvalRemarks, setApprovalRemarks] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const fetchApplication = useCallback(async () => {
     try {
@@ -69,9 +72,13 @@ export default function ApplicationDetailPage() {
 
   const handleApprove = async () => {
     setActionError(null);
+    if (!approvalRemarks.trim()) {
+      setActionError('Enter approval remarks before approving this application.');
+      return;
+    }
     setActionLoading(true);
     try {
-      await api.loanApplications.changeStatus(appId, 'APPROVED');
+      await api.loanApplications.changeStatus(appId, 'APPROVED', approvalRemarks.trim());
       setShowApproveDialog(false);
       await fetchApplication();
     } catch (err: any) {
@@ -83,9 +90,13 @@ export default function ApplicationDetailPage() {
 
   const handleReject = async () => {
     setActionError(null);
+    if (!rejectionReason.trim()) {
+      setActionError('Enter a reason for rejecting this application.');
+      return;
+    }
     setActionLoading(true);
     try {
-      await api.loanApplications.changeStatus(appId, 'REJECTED');
+      await api.loanApplications.changeStatus(appId, 'REJECTED', rejectionReason.trim());
       setShowRejectDialog(false);
       await fetchApplication();
     } catch (err: any) {
@@ -357,7 +368,7 @@ export default function ApplicationDetailPage() {
             <Button
               className="bg-accent text-accent-foreground hover:opacity-90"
               onClick={handleApprove}
-              disabled={actionLoading}
+              disabled={actionLoading || !approvalRemarks.trim()}
             >
               {actionLoading && <Loader2 size={16} className="animate-spin mr-2" />} Approve
             </Button>
@@ -368,6 +379,19 @@ export default function ApplicationDetailPage() {
           <p className="text-sm text-muted-foreground">
             Are you sure you want to approve this application for ₦{(application.requestedAmount / 1000).toFixed(0)}K?
           </p>
+          <div>
+            <label htmlFor="approval-remarks" className="mb-2 block text-sm font-medium text-foreground">
+              Approval remarks <span className="text-destructive">*</span>
+            </label>
+            <Textarea
+              id="approval-remarks"
+              value={approvalRemarks}
+              onChange={(event) => setApprovalRemarks(event.target.value)}
+              placeholder="Record the basis and conditions for approval"
+              rows={4}
+            />
+          </div>
+          {showApproveDialog && actionError && <p className="text-sm text-destructive">{actionError}</p>}
           <div className="p-4 bg-accent/10 rounded-lg">
             <p className="text-sm font-semibold text-foreground">The customer will be notified via SMS about the approval.</p>
           </div>
@@ -385,7 +409,7 @@ export default function ApplicationDetailPage() {
             <Button
               className="bg-destructive text-destructive-foreground hover:opacity-90"
               onClick={handleReject}
-              disabled={actionLoading}
+              disabled={actionLoading || !rejectionReason.trim()}
             >
               {actionLoading && <Loader2 size={16} className="animate-spin mr-2" />} Reject
             </Button>
@@ -396,6 +420,19 @@ export default function ApplicationDetailPage() {
           <p className="text-sm text-muted-foreground">
             Are you sure you want to reject this application?
           </p>
+          <div>
+            <label htmlFor="rejection-reason" className="mb-2 block text-sm font-medium text-foreground">
+              Reason for rejection <span className="text-destructive">*</span>
+            </label>
+            <Textarea
+              id="rejection-reason"
+              value={rejectionReason}
+              onChange={(event) => setRejectionReason(event.target.value)}
+              placeholder="Explain clearly why this application is being rejected"
+              rows={4}
+            />
+          </div>
+          {showRejectDialog && actionError && <p className="text-sm text-destructive">{actionError}</p>}
           <div className="p-4 bg-destructive/10 rounded-lg">
             <p className="text-sm font-semibold text-foreground">The customer will be notified via SMS about the rejection.</p>
           </div>
