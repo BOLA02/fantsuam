@@ -5,6 +5,7 @@ import { z } from "zod";
 export const createGuarantorSchema = z.object({
   body: z.object({
     customerId: z.uuid({ message: "Invalid Customer ID format" }),
+    applicationId: z.uuid({ message: "Invalid Application ID format" }).optional(),
     fullName: z.string().min(2),
     relationship: z.string().min(2),
     phone: z.string().min(10),

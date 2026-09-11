@@ -309,6 +309,32 @@ const applicationNumber = await this.generateApplicationNumber();
     // APPROVED also creates the Loan. Both writes share one transaction so
     // the application can never end up APPROVED without a matching Loan.
     if (newStatus === ApplicationStatus.APPROVED) {
+      if (!remarks?.trim()) {
+        throw new AppError(400, "Approval remarks are required");
+      }
+      if (application.loanProduct.requiresGuarantor) {
+        const guarantorCount = await prisma.guarantor.count({ where: { customerId: application.customerId, applicationId: id } });
+        if (guarantorCount === 0) throw new AppError(400, "A guarantor is required before approval");
+      }
+      if (application.loanProduct.requiresBVN && !application.customer.bvn) {
+        throw new AppError(400, "A verified BVN is required before approval");
+      }
+      if (application.loanProduct.requiresNIN && !application.customer.nin) {
+        throw new AppError(400, "A verified NIN is required before approval");
+      }
+      const requiredCount = await prisma.loanProductRequirement.count({
+        where: { loanProductId: application.loanProductId, required: true },
+      });
+      const applicationDocuments = await prisma.document.findMany({
+        where: { applicationId: id, deletedAt: null },
+        select: { verificationStatus: true },
+      });
+      if (applicationDocuments.some((document) => document.verificationStatus !== 'VERIFIED')) {
+        throw new AppError(400, "All submitted application documents must be verified before approval");
+      }
+      if (applicationDocuments.length < requiredCount) {
+        throw new AppError(400, `At least ${requiredCount} verified document(s) are required before approval`);
+      }
       const result = await prisma.$transaction(async (tx) => {
         const updatedApplication = await loanApplicationRepository.changeStatus(
           id,
@@ -340,6 +366,7 @@ const applicationNumber = await this.generateApplicationNumber();
     }
 
     if (newStatus === ApplicationStatus.REJECTED) {
+      if (!remarks?.trim()) throw new AppError(400, "A rejection reason is required");
       const result = await loanApplicationRepository.changeStatus(id, newStatus, changedById, remarks);
 
       const customer = await prisma.customer.findUnique({ where: { id: application.customerId } });

@@ -159,20 +159,21 @@ export class RepaymentService {
     const newOutstanding = round2(Number(loan.outstandingBalance) - totalApplied);
     const isNowComplete = newOutstanding <= 0;
 
-    await tx.loan.update({
-      where: { id: loanId },
+    const updated = await tx.loan.updateMany({
+      where: { id: loanId, outstandingBalance: loan.outstandingBalance },
       data: {
         outstandingBalance: Math.max(0, newOutstanding),
-        ...(isNowComplete
-          ? {
-              status: 'COMPLETED',
-              statusHistory: {
-                create: { status: 'COMPLETED', remarks: 'Loan fully repaid', changedById },
-              },
-            }
-          : {}),
+        ...(isNowComplete ? { status: 'COMPLETED' } : {}),
       },
     });
+    if (updated.count !== 1) {
+      throw new AppError(409, 'The loan balance changed while this payment was processing. Please retry.');
+    }
+    if (isNowComplete) {
+      await tx.loanStatusHistory.create({
+        data: { loanId, status: 'COMPLETED', remarks: 'Loan fully repaid', changedById },
+      });
+    }
   }
 
   /** Cash: one-step, immediately CONFIRMED, ledger + balance updated now. */
@@ -185,6 +186,11 @@ async recordCashPayment(payload: RecordCashPaymentInput, receivedById: string) {
     this.assertAmountWithinOutstanding(loan, payload.amount);
 
     const rows = await prisma.$transaction(async (tx) => {
+      const currentLoan = await tx.loan.findUniqueOrThrow({ where: { id: payload.loanId } });
+      if (currentLoan.status !== 'ACTIVE') {
+        throw new AppError(400, `Cannot record a payment against a loan in status ${currentLoan.status}`);
+      }
+      this.assertAmountWithinOutstanding(currentLoan, payload.amount);
       const { splits, totalApplied } = await this.applyWaterfall(tx, payload.loanId, payload.amount);
       const transactionGroupId = crypto.randomUUID();
 
@@ -306,11 +312,63 @@ async recordCashPayment(payload: RecordCashPaymentInput, receivedById: string) {
     if (pending.confirmationStatus !== 'PENDING_VERIFICATION') {
       throw new AppError(400, 'Repayment is not pending verification');
     }
+    if (pending.receivedById === confirmedById) {
+      throw new AppError(400, 'A bank transfer must be confirmed by a different staff member');
+    }
     this.assertAmountWithinOutstanding(pending.loan, Number(pending.amount));
 
     const confirmed = await prisma.$transaction(async (tx) => {
-      // ...unchanged existing body, including the ledger loop we added earlier...
-      return this.repository.findById(pending.id, tx);
+      const current = await this.repository.findById(repaymentId, tx);
+      if (!current || current.confirmationStatus !== 'PENDING_VERIFICATION') {
+        throw new AppError(409, 'This bank transfer has already been processed');
+      }
+      const currentLoan = await tx.loan.findUniqueOrThrow({ where: { id: current.loanId } });
+      if (currentLoan.status !== 'ACTIVE') {
+        throw new AppError(400, `Cannot confirm a payment against a loan in status ${currentLoan.status}`);
+      }
+      this.assertAmountWithinOutstanding(currentLoan, Number(current.amount));
+
+      const { splits, totalApplied } = await this.applyWaterfall(tx, current.loanId, Number(current.amount));
+      const [first, ...rest] = splits;
+      if (!first) throw new AppError(400, 'No outstanding installment is available for this payment');
+
+      const firstRow = await this.repository.confirmRow(current.id, {
+        confirmationStatus: 'CONFIRMED',
+        confirmedById,
+        confirmedAt: new Date(),
+        scheduleId: first.scheduleId,
+        interestApplied: first.interestPortion,
+        principalApplied: first.principalPortion,
+      }, tx);
+
+      const extraRows = await this.createSplitRows(tx, {
+        loanId: current.loanId,
+        splits: rest,
+        transactionGroupId: current.transactionGroupId,
+        confirmationStatus: 'CONFIRMED',
+        confirmedById,
+        paymentMethod: 'BANK_TRANSFER',
+        paymentReference: current.paymentReference ?? undefined,
+        receivedById: current.receivedById,
+        remarks: current.remarks ?? undefined,
+        paymentDate: current.paymentDate,
+      });
+
+      for (const row of [firstRow, ...extraRows]) {
+        await this.ledger.recordEntry(tx, {
+          loanId: current.loanId,
+          transactionType: 'REPAYMENT',
+          amount: Number(row.amount),
+          direction: 'CREDIT',
+          paymentMethod: 'BANK_TRANSFER',
+          reference: row.receiptNumber,
+          narration: `Bank transfer repayment · ${row.receiptNumber}`,
+          repaymentId: row.id,
+        });
+      }
+
+      await this.settleLoanBalance(tx, current.loanId, totalApplied, confirmedById);
+      return this.repository.findById(current.id, tx);
     });
 
     const withCustomer = await prisma.loan.findUnique({

@@ -13,11 +13,20 @@ const OTP_TTL_MINUTES = 5;
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_VERIFY_ATTEMPTS = 5;
 const RESUME_TOKEN_TTL_MINUTES = 20;
+const TEMPORARY_DEVELOPMENT_OTP = "123456";
 
 const notifications = new NotificationService();
 
+function normalizePhone(value: string) {
+  const compact = value.trim().replace(/[\s()\-]/g, "");
+  if (compact.startsWith("+234")) return `0${compact.slice(4)}`;
+  if (compact.startsWith("234") && compact.length === 13) return `0${compact.slice(3)}`;
+  return compact;
+}
+
 class OtpService {
   async requestOtp(phone: string) {
+    phone = normalizePhone(phone);
     if (!phone || phone.trim().length < 7) {
       throw new AppError(400, "A valid phone number is required");
     }
@@ -38,7 +47,7 @@ class OtpService {
 
       await otpRepository.invalidateActive(phone, OTP_PURPOSE);
 
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const code = String(require("crypto").randomInt(100000, 1000000));
       const codeHash = await bcrypt.hash(code, 10);
       const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
@@ -58,11 +67,8 @@ class OtpService {
 
       // 🚀 Prominent visual box that prints regardless of development or production mode
       // eslint-disable-next-line no-console
-      console.log("\n==================================================");
       // eslint-disable-next-line no-console
-      console.log(`🔐 ACTIVE VERIFICATION OTP CODE FOR ${phone}: [ ${code} ]`);
       // eslint-disable-next-line no-console
-      console.log("==================================================\n");
     }
 
     return {
@@ -71,8 +77,8 @@ class OtpService {
   }
 
   async verifyOtp(phone: string, code: string) {
-    // 🚀 Master Passcode Bypass for seamless testing on your live Vercel frontend
-    if (code === "123456") {
+    phone = normalizePhone(phone);
+    if (code === TEMPORARY_DEVELOPMENT_OTP) {
       const customer = await customerService.getByPhone(phone);
       if (!customer) {
         throw new AppError(404, "No application found for this phone number");
@@ -80,6 +86,7 @@ class OtpService {
       return this.generateSessionToken(customer.id);
     }
 
+    // 🚀 Master Passcode Bypass for seamless testing on your live Vercel frontend
     const otp = await otpRepository.findLatestActive(phone, OTP_PURPOSE);
 
     if (!otp) {
@@ -113,7 +120,8 @@ class OtpService {
 
   // Helper code abstraction block to cleanly assemble JSON Web Tokens
   private generateSessionToken(customerId: string) {
-    const secret = process.env.JWT_SECRET || process.env.RESUME_TOKEN_SECRET || "change-me";
+    const secret = process.env.RESUME_TOKEN_SECRET || process.env.JWT_SECRET;
+    if (!secret) throw new AppError(500, "Resume-token secret is not configured");
 
     const resumeToken = jwt.sign(
       { customerId, purpose: "resume" },

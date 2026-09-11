@@ -12,6 +12,9 @@ export default function CustomerSignUpPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +30,7 @@ export default function CustomerSignUpPage() {
     try {
       const result = await customerApi<{ data: CustomerSession }>('/customer-auth/signup', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, phone, code }),
       });
       saveCustomerSession(result.data);
       router.replace('/account');
@@ -54,6 +57,42 @@ export default function CustomerSignUpPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
+        <AuthInput
+          label="Application phone number"
+          required
+          type="tel"
+          autoComplete="tel"
+          placeholder="08012345678"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+        <div className="space-y-2">
+          <AuthInput
+            label="Verification code"
+            required
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="6-digit code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          />
+          <button
+            type="button"
+            className="text-sm font-bold text-[#1E7A34] hover:underline disabled:opacity-50"
+            disabled={!phone || loading}
+            onClick={async () => {
+              setError('');
+              try {
+                await customerApi('/otp/request', { method: 'POST', body: JSON.stringify({ phone }) });
+                setCodeSent(true);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Unable to send verification code.');
+              }
+            }}
+          >
+            {codeSent ? 'Send code again' : 'Send verification code'}
+          </button>
+        </div>
         <AuthInput
           label="Create a password"
           required

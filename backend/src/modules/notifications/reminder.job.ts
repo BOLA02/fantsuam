@@ -20,6 +20,15 @@ async function hasReminderBeenSentToday(phone: string): Promise<boolean> {
 }
 
 export async function runReminderJob() {
+  const now = new Date();
+  await prisma.repaymentSchedule.updateMany({
+    where: {
+      status: { in: ['PENDING', 'PARTIALLY_PAID'] },
+      dueDate: { lt: now },
+    },
+    data: { status: 'OVERDUE' },
+  });
+
   const targetDate = new Date();
   targetDate.setDate(targetDate.getDate() + REMINDER_DAYS_BEFORE_DUE);
   const startOfTarget = new Date(targetDate);

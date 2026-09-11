@@ -19,6 +19,7 @@ import {
 } from "./loan-application.validation";
 
 import { requireApplicationFee } from "../../middleware/application-fee.middleware";
+import { requirePublicApplicationOwner } from "../../middleware/public-application.middleware";
 
 const router = Router();
 
@@ -40,6 +41,7 @@ router.get(
 router.post(
   "/",
   requireApplicationFee,
+  requirePublicApplicationOwner,
   validate(createLoanApplicationSchema),
   loanApplicationController.create
 );

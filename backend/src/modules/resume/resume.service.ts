@@ -15,7 +15,7 @@ class ResumeService {
     try {
       payload = jwt.verify(
         resumeToken,
-        process.env.JWT_SECRET || process.env.RESUME_TOKEN_SECRET || "change-me"
+        process.env.RESUME_TOKEN_SECRET || process.env.JWT_SECRET!
       );
     } catch {
       throw new AppError(401, "This resume link has expired. Please verify your phone again.");

@@ -63,9 +63,10 @@ export const api = {
     search: async (keyword: string) => {
       return apiClient<ApiResponse<Customer[]>>(`/customers/search?q=${encodeURIComponent(keyword)}`);
     },
-    create: async (payload: any) => {
+    create: async (payload: any, resumeToken?: string) => {
       return apiClient<ApiResponse<Customer>>('/customers', {
         method: 'POST',
+        headers: resumeToken ? { 'X-Resume-Token': resumeToken } : undefined,
         body: JSON.stringify(payload),
       });
     },
@@ -199,6 +200,7 @@ loanApplications: {
   },
   create: async (payload: {
     customerId: string;
+    applicationId?: string;
     fullName: string;
     relationship: string;
     phone: string;

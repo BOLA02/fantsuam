@@ -19,6 +19,7 @@ import {
 } from "./guarantor.validation";
 
 import { requireApplicationFee } from "../../middleware/application-fee.middleware";
+import { requirePublicApplicationOwner } from "../../middleware/public-application.middleware";
 
 const router = Router();
 
@@ -38,6 +39,7 @@ router.get(
 router.post(
   "/",
   requireApplicationFee,
+  requirePublicApplicationOwner,
   validate(createGuarantorSchema),
   guarantorController.create
 );

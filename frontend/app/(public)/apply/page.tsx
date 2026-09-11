@@ -12,7 +12,6 @@ import { ArrowLeft, ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucid
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api-routes';
 import { LoanProduct } from '@/lib/api-types';
-import { generateCustomerNumber } from '@/lib/generate-customer-number';
 import { ApplyFormData, initialFormData } from '@/components/apply/apply-types';
 import { Step1PersonalInfo } from '@/components/apply/step1-personal-info';
 import { Step2LoanDetails } from '@/components/apply/step2-loan-details';
@@ -89,6 +88,8 @@ export default function ApplyPage() {
   const [resumeFirstName, setResumeFirstName] = useState<string | undefined>();
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const [verifiedResumeToken, setVerifiedResumeToken] = useState<string | undefined>();
+  const [verifyingExistingCustomer, setVerifyingExistingCustomer] = useState(false);
 
   useEffect(() => {
     api.loanProducts
@@ -145,6 +146,14 @@ export default function ApplyPage() {
     try {
       const res = await api.resume.get(resumeToken);
       const state = res.data;
+      setVerifiedResumeToken(resumeToken);
+      localStorage.setItem('mf_application_access_token', resumeToken);
+      if (verifyingExistingCustomer) {
+        setVerifyingExistingCustomer(false);
+        setCurrentStep(2);
+        setShowOtpModal(false);
+        return;
+      }
       const c = state.customer;
       const app = state.application;
       const guarantor = state.guarantors?.[0];
@@ -280,7 +289,6 @@ export default function ApplyPage() {
 
       if (!customerId) {
         const customer = await api.customers.create({
-          customerNumber: generateCustomerNumber(),
           firstName: formData.firstName,
           lastName: formData.lastName,
           middleName: formData.middleName || undefined,
@@ -303,8 +311,10 @@ export default function ApplyPage() {
             occupation: formData.occupation,
             monthlyIncome: Number(formData.monthlyIncome),
           },
-        });
+        }, verifiedResumeToken);
         customerId = customer.data.id;
+        const accessToken = (customer.data as any).applicationAccessToken;
+        if (accessToken) localStorage.setItem('mf_application_access_token', accessToken);
         setFormData((prev) => ({ ...prev, customerId }));
         saveApplyProgress({ customerId, firstName: formData.firstName });
       }
@@ -325,7 +335,13 @@ export default function ApplyPage() {
       saveApplyProgress({ customerId, applicationId: res.data.id });
       setCurrentStep(3);
     } catch (err: any) {
-      setError(err.message);
+      if (err.message === 'PHONE_VERIFICATION_REQUIRED') {
+        setError('This phone number belongs to an existing customer. Verify the phone number to continue.');
+        setShowOtpModal(true);
+        setVerifyingExistingCustomer(true);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -349,6 +365,7 @@ export default function ApplyPage() {
     try {
       const res = await api.guarantors.create({
         customerId: formData.customerId,
+        applicationId: formData.applicationId,
         fullName: formData.guarantorName,
         relationship: formData.guarantorRelationship,
         phone: formData.guarantorPhone,
@@ -377,6 +394,8 @@ export default function ApplyPage() {
 
   const handleFinish = () => {
     clearApplyProgress();
+    localStorage.removeItem('mf_application_fee_token');
+    localStorage.removeItem('mf_application_access_token');
     setDone(true);
   };
 

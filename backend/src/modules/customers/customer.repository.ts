@@ -58,6 +58,34 @@ async findByPhone(phone: string) {
     });
   }
 
+  async updateApplicationProfile(id: string, data: any) {
+    const { address, employment, customerNumber: _ignored, ...profile } = data;
+    const existing = await prisma.customer.findUnique({
+      where: { id },
+      include: { addresses: true, employments: true },
+    });
+    if (!existing) return null;
+
+    return prisma.customer.update({
+      where: { id },
+      data: {
+        ...profile,
+        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+        addresses: address
+          ? existing.addresses.some((item) => item.isPrimary)
+            ? { updateMany: { where: { isPrimary: true }, data: { ...address, isPrimary: true } } }
+            : { create: { ...address, isPrimary: true } }
+          : undefined,
+        employments: employment
+          ? existing.employments.some((item) => item.isCurrent)
+            ? { updateMany: { where: { isCurrent: true }, data: { ...employment, isCurrent: true } } }
+            : { create: { ...employment, isCurrent: true } }
+          : undefined,
+      },
+      include: { addresses: true, employments: true },
+    });
+  }
+
   
 
    async create(data: any,

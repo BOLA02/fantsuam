@@ -131,7 +131,12 @@ export class LoanService {
 
     const principalAmount = Number(application.requestedAmount);
     const interestRate = Number(loanProduct.interestRate);
-    const processingFee = Number(loanProduct.processingFee);
+    const configuredFees = await client.loanProductFee.findMany({ where: { loanProductId: loanProduct.id } });
+    const additionalFees = configuredFees.reduce((sum, fee) => {
+      const amount = Number(fee.amount);
+      return sum + (fee.percentage ? principalAmount * amount / 100 : amount);
+    }, 0);
+    const processingFee = round2(Number(loanProduct.processingFee) + additionalFees);
     const durationMonths = application.durationMonths;
 
     const totalInterest = round2(principalAmount * (interestRate / 100) * (durationMonths / 12));
@@ -174,8 +179,8 @@ async disburse(loanId: string, payload: DisburseLoanInput, disbursedById: string
       throw new AppError(400, `Cannot disburse a loan in status ${loan.status}`);
     }
 
-    if (payload.amount > Number(loan.approvedAmount)) {
-      throw new AppError(400, 'Disbursed amount cannot exceed approved amount');
+    if (round2(payload.amount) !== round2(Number(loan.approvedAmount))) {
+      throw new AppError(400, 'The disbursed amount must equal the approved amount');
     }
 
     const disbursementDate = new Date();

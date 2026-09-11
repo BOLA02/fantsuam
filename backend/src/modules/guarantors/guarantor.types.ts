@@ -1,6 +1,7 @@
 // src/modules/guarantors/guarantor.types.ts
 
 export interface CreateGuarantorInput {
+  applicationId?: string;
   customerId: string;
   fullName: string;
   relationship: string;

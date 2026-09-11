@@ -2,6 +2,9 @@ import prisma from "../../config/prisma";
 import { AppError } from "../../utils/AppError";
 import { comparePassword, hashPassword } from "../../utils/password";
 import { generateToken } from "../../utils/jwt";
+import otpService from "../otp/otp.service";
+import jwt from "jsonwebtoken";
+import { env } from "../../config/env";
 
 const customerSelect = {
   id: true,
@@ -12,9 +15,15 @@ const customerSelect = {
 } as const;
 
 class CustomerAuthService {
-  async signup(email: string, password: string) {
+  async signup(email: string, password: string, phone: string, code: string) {
+    email = email.trim().toLowerCase();
+    const verification = await otpService.verifyOtp(phone, code);
+    const verified = jwt.verify(
+      verification.resumeToken,
+      process.env.RESUME_TOKEN_SECRET || env.JWT_SECRET
+    ) as { customerId?: string; purpose?: string };
     const customer = await prisma.customer.findFirst({
-      where: { email, deletedAt: null, status: "ACTIVE" },
+      where: { id: verified.customerId, email, deletedAt: null, status: "ACTIVE" },
     });
     if (!customer) {
       throw new AppError(404, "No active loan application matches this email. Apply for a loan first.");

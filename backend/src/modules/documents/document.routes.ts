@@ -20,6 +20,7 @@ import {
 } from "./document.validation";
 
 import { requireApplicationFee } from "../../middleware/application-fee.middleware";
+import { requirePublicApplicationOwner } from "../../middleware/public-application.middleware";
 
 const router = Router();
 
@@ -27,7 +28,9 @@ const router = Router();
 router.post(
   "/",
   requireApplicationFee,
+  requirePublicApplicationOwner,
   upload.single("file"),
+  requirePublicApplicationOwner,
   validate(uploadDocumentSchema),
   documentController.upload
 );

@@ -25,7 +25,7 @@ router.post(
   "/",
   requireApplicationFee,
   validate(createCustomerSchema),
-  customerController.create
+  customerController.createForApplication
 );
 
 // Everything below requires staff SSO authentication

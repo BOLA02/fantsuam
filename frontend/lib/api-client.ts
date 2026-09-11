@@ -14,6 +14,8 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
 
   const applicationFeeToken =
     typeof window === 'undefined' ? null : localStorage.getItem('mf_application_fee_token');
+  const applicationAccessToken =
+    typeof window === 'undefined' ? null : localStorage.getItem('mf_application_access_token');
 
   const isFormData =
     typeof FormData !== 'undefined' && options.body instanceof FormData;
@@ -22,6 +24,7 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(applicationFeeToken ? { 'X-Application-Fee-Token': applicationFeeToken } : {}),
+    ...(applicationAccessToken ? { 'X-Application-Access-Token': applicationAccessToken } : {}),
     ...options.headers,
   };
 

@@ -16,7 +16,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     transactionType,
     onSuccess,
 }) => {
-    const [phone, setPhone] = useState('');
+    const [searchPhone, setSearchPhone] = useState('');
+    const [newCustomerPhone, setNewCustomerPhone] = useState('');
 
     const [customer, setCustomer] =
         useState<CustomerLookup | null>(null);
@@ -63,7 +64,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     // ---------------------------------------------
 
     const handleCustomerSearch = async () => {
-        const normalizedPhone = phone.trim();
+        const normalizedPhone = searchPhone.trim();
 
         if (!normalizedPhone) {
             alert('Please enter a customer phone number.');
@@ -159,7 +160,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         e.preventDefault();
 
         if (isProvision) {
-            const phoneDigits = phone.replace(/\D/g, '');
+            const accountPhone = creatingNewCustomer ? newCustomerPhone : searchPhone;
+            const phoneDigits = accountPhone.replace(/\D/g, '');
             if (phoneDigits.length < 7) {
                 alert('Enter the customer phone number above before creating the savings account.');
                 return;
@@ -218,7 +220,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             if (isProvision) {
                 const response =
                     await api.savings.provisionAccount({
-                        phone: phone.trim(),
+                        phone: (creatingNewCustomer ? newCustomerPhone : searchPhone).trim(),
 
                         /*
                          * If customer exists, don't send
@@ -320,13 +322,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     // ---------------------------------------------
 
     const clearForm = () => {
-        setPhone('');
+        setSearchPhone('');
+        setNewCustomerPhone('');
 
         setCustomer(null);
 
         setExistingSavingsAccount(null);
 
         setCustomerSearched(false);
+        setCreatingNewCustomer(false);
 
         setFirstName('');
         setLastName('');
@@ -431,7 +435,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <>
                         {/* PHONE SEARCH */}
 
-                        <div
+                        {!creatingNewCustomer && <div
                             style={{
                                 marginBottom: '18px',
                             }}
@@ -456,9 +460,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                             >
                                 <input
                                     type="tel"
-                                    value={phone}
+                                    value={searchPhone}
                                     onChange={(e) => {
-                                        setPhone(
+                                        setSearchPhone(
                                             e.target.value
                                         );
 
@@ -530,6 +534,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                                     setExistingSavingsAccount(null);
                                     setCustomerSearched(false);
                                     setCreatingNewCustomer(true);
+                                    setSearchPhone('');
+                                    setNewCustomerPhone('');
                                     setFirstName('');
                                     setLastName('');
                                     setEmail('');
@@ -540,7 +546,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                             >
                                 Add a new customer instead
                             </button>
-                        </div>
+                        </div>}
 
                         {/* -----------------------------------------
                             NEW CUSTOMER DETAILS
@@ -593,6 +599,48 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                                             : 'No customer is registered with this phone number. Enter the customer information below to create a new customer.'}
                                     </div>
                                 </div>
+
+                                {creatingNewCustomer && (
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label
+                                            style={{
+                                                display: 'block',
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: '#475569',
+                                                marginBottom: '6px',
+                                            }}
+                                        >
+                                            New Customer Phone Number <span style={{ color: '#dc2626' }}>*</span>
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={newCustomerPhone}
+                                            onChange={(e) => setNewCustomerPhone(e.target.value)}
+                                            placeholder="08012345678"
+                                            required
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 12px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #cbd5e1',
+                                                fontSize: '14px',
+                                                outline: 'none',
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setCreatingNewCustomer(false);
+                                                setCustomerSearched(false);
+                                                setNewCustomerPhone('');
+                                            }}
+                                            style={{ marginTop: '10px', border: 'none', background: 'none', padding: 0, color: '#2c2a7a', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                                        >
+                                            Find an existing customer instead
+                                        </button>
+                                    </div>
+                                )}
 
                                 {/* NAME */}
 

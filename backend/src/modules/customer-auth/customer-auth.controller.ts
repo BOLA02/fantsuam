@@ -3,7 +3,7 @@ import service from "./customer-auth.service";
 
 class CustomerAuthController {
   signup = async (req: Request, res: Response, next: NextFunction) => {
-    try { res.status(201).json({ success: true, data: await service.signup(req.body.email, req.body.password) }); }
+    try { res.status(201).json({ success: true, data: await service.signup(req.body.email, req.body.password, req.body.phone, req.body.code) }); }
     catch (error) { next(error); }
   };
   login = async (req: Request, res: Response, next: NextFunction) => {

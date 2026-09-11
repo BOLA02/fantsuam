@@ -14,6 +14,9 @@ export async function requireApplicationFee(req: Request, res: Response, next: N
     if (payload.purpose !== "APPLICATION_FEE" || !payload.paymentId) throw new Error("invalid token");
     const payment = await prisma.applicationFeePayment.findUnique({ where: { id: payload.paymentId } });
     if (!payment || payment.status !== "SUCCESS" || payment.amount !== settings.applicationFeeAmount) throw new Error("unpaid");
+    const bodyCustomerId = req.body?.customerId;
+    if (payment.customerId && bodyCustomerId && payment.customerId !== bodyCustomerId) throw new Error("wrong customer");
+    (req as any).applicationFeePayment = payment;
     next();
   } catch {
     res.status(402).json({ success: false, message: "A verified application-fee payment is required before applying" });

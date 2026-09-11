@@ -389,8 +389,10 @@ model Guarantor {
   id String @id @default(uuid())
 
   customerId String
+  applicationId String?
 
   customer Customer @relation(fields: [customerId], references: [id])
+  application LoanApplication? @relation(fields: [applicationId], references: [id])
 
   fullName String
 
@@ -411,6 +413,7 @@ model Guarantor {
   updatedAt DateTime @updatedAt
 
   @@index([customerId])
+  @@index([applicationId])
 }
 
 //////////////////////////////////////////////////////////
@@ -588,6 +591,7 @@ model LoanApplication {
   assignedOfficer User? @relation(fields: [assignedOfficerId], references: [id])
 
   documents Document[]
+  guarantors Guarantor[]
 
   reviews ApplicationReview[]
 
@@ -1080,6 +1084,9 @@ model ApplicationFeePayment {
   status      String   @default("PENDING")
   paystackId  String?  @unique
   paidAt      DateTime?
+  customerId  String?
+  applicationId String?
+  consumedAt  DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

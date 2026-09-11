@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createCustomerSchema = z.object({
   
   body: z.object({
-    customerNumber: z.string().min(3),
+    customerNumber: z.string().min(3).optional(),
     firstName: z.string().min(2),
     lastName: z.string().min(2),
     middleName: z.string().optional(),

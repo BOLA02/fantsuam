@@ -31,6 +31,12 @@ class GuarantorService {
     if (!customer) {
       throw new AppError(404, "Customer not found");
     }
+    if (data.applicationId) {
+      const application = await prisma.loanApplication.findFirst({
+        where: { id: data.applicationId, customerId: data.customerId },
+      });
+      if (!application) throw new AppError(400, "Application does not belong to this customer");
+    }
 
     return guarantorRepository.create(data);
   }

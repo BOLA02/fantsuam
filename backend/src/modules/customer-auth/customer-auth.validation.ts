@@ -6,4 +6,10 @@ const credentials = z.object({
 });
 
 export const customerSignupSchema = z.object({ body: credentials });
+export const verifiedCustomerSignupSchema = z.object({
+  body: credentials.extend({
+    phone: z.string().min(7),
+    code: z.string().length(6),
+  }),
+});
 export const customerLoginSchema = z.object({ body: credentials });

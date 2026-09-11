@@ -42,11 +42,23 @@ class LoanApplicationController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const createdById = req.user?.id ?? (await getSystemUserId());
+      const feePayment = (req as any).applicationFeePayment;
+      if (feePayment?.applicationId) {
+        const { AppError } = await import("../../utils/AppError");
+        throw new AppError(409, "This application fee has already been used to submit an application");
+      }
 
       const application = await loanApplicationService.create(
         req.body,
         createdById
       );
+      if (feePayment) {
+        const prisma = (await import("../../config/prisma")).default;
+        await prisma.applicationFeePayment.update({
+          where: { id: feePayment.id },
+          data: { customerId: application.customerId, applicationId: application.id, consumedAt: new Date() },
+        });
+      }
 
       res.status(201).json({
         success: true,
