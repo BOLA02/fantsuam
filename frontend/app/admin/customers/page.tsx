@@ -140,12 +140,14 @@ export default function CustomersPage() {
   const [error, setError] = useState('');
   const [showCreateCustomer, setShowCreateCustomer] = useState(false);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [customerFormError, setCustomerFormError] = useState('');
   const [customerForm, setCustomerForm] = useState({ firstName: '', lastName: '', gender: 'MALE', dateOfBirth: '', phone: '', email: '', addressLine1: '', city: '', state: '', country: 'Nigeria', employerName: '', occupation: '', monthlyIncome: '' });
 
   const updateCustomerForm = (field: string, value: string) => setCustomerForm((form) => ({ ...form, [field]: value }));
   const createManualCustomer = async () => {
     try {
       setCreatingCustomer(true);
+      setCustomerFormError('');
       await api.customers.createManual({
         ...customerForm,
         customerNumber: `CUS-${Date.now()}`,
@@ -157,7 +159,7 @@ export default function CustomersPage() {
       setCustomerForm({ firstName: '', lastName: '', gender: 'MALE', dateOfBirth: '', phone: '', email: '', addressLine1: '', city: '', state: '', country: 'Nigeria', employerName: '', occupation: '', monthlyIncome: '' });
       await loadCustomersData();
     } catch (err: any) {
-      setError(err.message || 'Could not create customer. Please review the form and try again.');
+      setCustomerFormError(err.message || 'Could not create customer. Please review the form and try again.');
     } finally {
       setCreatingCustomer(false);
     }
@@ -365,7 +367,7 @@ export default function CustomersPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={() => setShowCreateCustomer(true)} className="bg-primary hover:bg-primary/90 shrink-0">
+          <Button onClick={() => { setCustomerFormError(''); setShowCreateCustomer(true); }} className="bg-primary hover:bg-primary/90 shrink-0">
             <UserPlus size={16} className="mr-2" /> Add customer
           </Button>
           <Button nativeButton={true} variant="outline" className="shrink-0">
@@ -392,7 +394,8 @@ export default function CustomersPage() {
         </div>
       )}
 
-      <Dialog open={showCreateCustomer} onOpenChange={setShowCreateCustomer} title="Add customer" description="Register a walk-in customer without the public application process." maxWidth="xl" actions={<><Button variant="outline" onClick={() => setShowCreateCustomer(false)} disabled={creatingCustomer}>Cancel</Button><Button onClick={createManualCustomer} disabled={creatingCustomer}>{creatingCustomer ? 'Saving…' : 'Save customer'}</Button></>}>
+      <Dialog open={showCreateCustomer} onOpenChange={(open) => { if (!open) setCustomerFormError(''); setShowCreateCustomer(open); }} title="Add customer" description="Register a walk-in customer without the public application process." maxWidth="xl" actions={<><Button variant="outline" onClick={() => setShowCreateCustomer(false)} disabled={creatingCustomer}>Cancel</Button><Button onClick={createManualCustomer} disabled={creatingCustomer}>{creatingCustomer ? 'Saving…' : 'Save customer'}</Button></>}>
+        {customerFormError && <div role="alert" className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{customerFormError}</span></div>}
         <div className="grid gap-3 sm:grid-cols-2 max-h-[55vh] overflow-y-auto pr-1">
           {([['firstName', 'First name'], ['lastName', 'Last name'], ['dateOfBirth', 'Date of birth'], ['phone', 'Phone number'], ['email', 'Email address'], ['addressLine1', 'Address'], ['city', 'City'], ['state', 'State'], ['employerName', 'Employer'], ['occupation', 'Occupation'], ['monthlyIncome', 'Monthly income']] as const).map(([field, label]) => <label key={field} className="text-sm font-medium">{label}<Input className="mt-1" type={field === 'dateOfBirth' ? 'date' : field === 'monthlyIncome' ? 'number' : field === 'email' ? 'email' : 'text'} value={customerForm[field]} onChange={(e) => updateCustomerForm(field, e.target.value)} /></label>)}
           <label className="text-sm font-medium">Gender<select className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={customerForm.gender} onChange={(e) => updateCustomerForm('gender', e.target.value)}><option value="MALE">Male</option><option value="FEMALE">Female</option></select></label>

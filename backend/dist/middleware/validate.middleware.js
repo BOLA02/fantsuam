@@ -13,9 +13,16 @@ const validate = (schema) => (req, res, next) => {
     }
     catch (error) {
         if (error instanceof zod_1.ZodError) {
+            const details = error.issues.map((issue) => {
+                const field = issue.path
+                    .filter((part) => part !== "body")
+                    .map((part) => String(part).replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()))
+                    .join(" ");
+                return field ? `${field}: ${issue.message}` : issue.message;
+            });
             return res.status(400).json({
                 success: false,
-                message: "Validation failed",
+                message: details.join(". "),
                 errors: error.flatten().fieldErrors,
             });
         }
