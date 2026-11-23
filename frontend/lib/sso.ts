@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 const CONSOLE_URL = process.env.NEXT_PUBLIC_CONSOLE_URL || "https://console.fantsuam.com.ng";
 const IDENTITY_URL = process.env.NEXT_PUBLIC_IDENTITY_API_URL || "https://identity.fantsuam.com.ng/api";
 

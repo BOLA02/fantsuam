@@ -8,18 +8,11 @@ import {
   UploadDocumentInput,
   ListDocumentFilters,
 } from "./document.types";
-
-interface UploadedFile {
-  originalname: string;
-  filename?: string;
-  mimetype: string;
-  size: number;
-  path: string; // secure_url from CloudinaryStorage
-}
+import { documentStorage, parseStorageReference } from "./document.storage";
 
 class DocumentService {
   async getAll(filters: ListDocumentFilters) {
-    return documentRepository.findAll(filters);
+    return (await documentRepository.findAll(filters)).map((document) => this.toResponse(document));
   }
 
   async getById(id: string) {
@@ -29,13 +22,14 @@ class DocumentService {
       throw new AppError(404, "Document not found");
     }
 
-    return document;
+    return this.toResponse(document);
   }
 
   async upload(
     data: UploadDocumentInput,
-    file: UploadedFile,
-    uploadedById?: string
+    file: Express.Multer.File,
+    uploadedById?: string,
+    verifiedCustomerId?: string
   ) {
     if (
       !data.customerId &&
@@ -49,6 +43,10 @@ class DocumentService {
       );
     }
 
+    if (!verifiedCustomerId || data.customerId !== verifiedCustomerId) {
+      throw new AppError(403, "You cannot upload a document for another customer");
+    }
+
     if (data.customerId) {
       const customer = await prisma.customer.findFirst({
         where: { id: data.customerId, deletedAt: null },
@@ -60,8 +58,8 @@ class DocumentService {
     }
 
     if (data.guarantorId) {
-      const guarantor = await prisma.guarantor.findUnique({
-        where: { id: data.guarantorId },
+      const guarantor = await prisma.guarantor.findFirst({
+        where: { id: data.guarantorId, customerId: verifiedCustomerId },
       });
 
       if (!guarantor) {
@@ -70,8 +68,8 @@ class DocumentService {
     }
 
     if (data.applicationId) {
-      const application = await prisma.loanApplication.findUnique({
-        where: { id: data.applicationId },
+      const application = await prisma.loanApplication.findFirst({
+        where: { id: data.applicationId, customerId: verifiedCustomerId },
       });
 
       if (!application) {
@@ -79,20 +77,54 @@ class DocumentService {
       }
     }
 
-    return documentRepository.create({
-      fileName: file.filename ?? file.originalname,
-      originalFileName: file.originalname,
-      mimeType: file.mimetype,
-      fileSize: file.size,
-      fileUrl: file.path,
-      documentType: data.documentType,
-      customerId: data.customerId,
-      guarantorId: data.guarantorId,
-      applicationId: data.applicationId,
-      collateralId: data.collateralId,
-      remarks: data.remarks,
-      uploadedById,
-    });
+    if (data.collateralId) {
+      const collateral = await prisma.collateral.findFirst({
+        where: { id: data.collateralId, loan: { customerId: verifiedCustomerId } },
+      });
+      if (!collateral) throw new AppError(404, "Collateral not found");
+    }
+
+    let stored;
+    try {
+      stored = await documentStorage.upload(file);
+    } catch {
+      throw new AppError(502, "Document storage is unavailable");
+    }
+
+    try {
+      const document = await documentRepository.create({
+        fileName: stored.publicId,
+        originalFileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+        fileUrl: stored.storageReference,
+        documentType: data.documentType,
+        customerId: verifiedCustomerId,
+        guarantorId: data.guarantorId,
+        applicationId: data.applicationId,
+        collateralId: data.collateralId,
+        remarks: data.remarks,
+        uploadedById,
+      });
+      return this.toResponse(document);
+    } catch (error) {
+      try { await documentStorage.delete(stored); } catch { /* retain original persistence error */ }
+      throw error;
+    }
+  }
+
+  async getDownloadSource(id: string) {
+    const document = await documentRepository.findById(id);
+    if (!document) throw new AppError(404, "Document not found");
+    const asset = parseStorageReference(document.fileUrl);
+    if (asset) return { kind: "redirect" as const, url: documentStorage.downloadUrl(asset) };
+    if (!/^https:\/\//i.test(document.fileUrl)) throw new AppError(404, "Document file is unavailable");
+    return { kind: "proxy" as const, url: document.fileUrl, mimeType: document.mimeType, fileName: document.originalFileName };
+  }
+
+  private toResponse<T extends { id: string; fileUrl: string }>(document: T) {
+    const { fileUrl: _privateStorageLocation, ...safe } = document;
+    return { ...safe, downloadPath: `/api/documents/${document.id}/download` };
   }
 
   async verify(

@@ -1,6 +1,6 @@
 import { renewLoanToken } from './sso';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   let token: string | null = null;

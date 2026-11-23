@@ -52,8 +52,9 @@ class DocumentController {
 
       const document = await documentService.upload(
         req.body,
-        req.file as any,
-        uploadedById
+        req.file,
+        uploadedById,
+        req.publicCustomerId
       );
 
       res.status(201).json({
@@ -61,6 +62,23 @@ class DocumentController {
         message: "Document uploaded successfully",
         data: document,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async download(req: Request, res: Response, next: NextFunction) {
+    try {
+      const source = await documentService.getDownloadSource(req.params.id as string);
+      if (source.kind === "redirect") return res.redirect(302, source.url);
+
+      const response = await fetch(source.url);
+      if (!response.ok || !response.body) throw new AppError(502, "Document storage is unavailable");
+      res.setHeader("Content-Type", source.mimeType);
+      res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(source.fileName)}`);
+      res.setHeader("Cache-Control", "private, no-store");
+      const { Readable } = await import("stream");
+      Readable.fromWeb(response.body as any).pipe(res);
     } catch (error) {
       next(error);
     }

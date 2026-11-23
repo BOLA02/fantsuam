@@ -1,2 +1,27 @@
 test-private.pem
 test-public.pem
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Tokens and secrets
+**/token.txt
+
+# Dependencies and build outputs
+**/node_modules/
+**/.next/
+**/dist/
+
+# Local database backups
+**/*.sql
+
+!backend/prisma/migrations/**/*.sql
+
+/backend/.local-keys/
+
+# TypeScript build cache
+**/*.tsbuildinfo
+
+# Local Docker Compose configuration
+/compose.microfinance.local.yaml

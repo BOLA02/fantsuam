@@ -31,7 +31,9 @@ export async function requirePublicApplicationOwner(req: Request, res: Response,
       if (!owned) throw new Error("collateral mismatch");
     }
 
-    (req as any).publicCustomerId = payload.customerId;
+    req.publicCustomerId = payload.customerId;
+    // Downstream code must use the signed identity, never a caller-selected ID.
+    body.customerId = payload.customerId;
     next();
   } catch {
     res.status(403).json({ success: false, message: "You cannot modify another customer's application" });

@@ -5,6 +5,8 @@ declare global {
     interface Request {
       user?: User;
       customer?: Customer;
+      publicCustomerId?: string;
+      applicationFeePayment?: import("@prisma/client").ApplicationFeePayment;
     }
   }
 }

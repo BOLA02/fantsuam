@@ -11,7 +11,7 @@ import { requireIdentity } from "../../middleware/identity.middleware";
 import { resolveLocalUser } from "../../middleware/resolveLocalUser.middleware";
 import { requirePermission } from "../../middleware/permission.middleware";
 import { validate } from "../../middleware/validate.middleware";
-import { upload } from "../../middleware/upload.middleware";
+import { parseDocumentUpload, validateDocumentFile } from "../../middleware/upload.middleware";
 
 import {
   uploadDocumentSchema,
@@ -27,11 +27,11 @@ const router = Router();
 // Public — created as part of the customer/loan application flow
 router.post(
   "/",
+  parseDocumentUpload,
+  requirePublicApplicationOwner,
   requireApplicationFee,
-  requirePublicApplicationOwner,
-  upload.single("file"),
-  requirePublicApplicationOwner,
   validate(uploadDocumentSchema),
+  validateDocumentFile,
   documentController.upload
 );
 
@@ -49,6 +49,13 @@ router.get(
   requirePermission("loan.documents.manage"),
   validate(idParamSchema),
   documentController.getById
+);
+
+router.get(
+  "/:id/download",
+  requirePermission("loan.documents.manage"),
+  validate(idParamSchema),
+  documentController.download
 );
 
 router.patch(

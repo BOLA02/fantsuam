@@ -2,9 +2,15 @@ node_modules
 dist
 .git
 .env
+.env.*
+token.txt
+*.sql
+!prisma/migrations/**/*.sql
 coverage
-npm-debug.log
+npm-debug.log*
 Dockerfile
 docker-compose.yml
 compose.yaml
-
+# Local development keys
+.local-keys/
+*.pem
